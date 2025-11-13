@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout'
 import { Head, router, useForm, usePage } from '@inertiajs/react'
 import { useEffect, useMemo, useState } from 'react'
 import { type BreadcrumbItem } from '@/types'
-import { productsDestroy, productsIndex, productsStore, productsUpdate } from '@/routes/products'
+import { destroy as productsDestroy, index as productsIndex, store as productsStore, update as productsUpdate } from '@/routes/products'
 import { Plus, X, Pencil, Trash2, Image as ImageIcon, Search } from 'lucide-react'
 
 // Types coming from the controller payload

@@ -2,27 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
-use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
 
 class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::query()->with('category');
+        $query = Product::query();
 
         if ($search = $request->string('search')->toString()) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
         if ($categoryId = $request->string('category')->toString()) {
-            $query->where('category_id', $categoryId);
+            $query->hasTaxonomies($categoryId);
         }
 
         $products = $query->latest()->get()->map(function (Product $p) {
@@ -31,12 +32,11 @@ class ProductController extends Controller
                 'name' => $p->name,
                 'description' => $p->description,
                 'price' => $p->price,
-                'image_url' => $p->image_url,
+                'image_url' => $p->image_path ? Storage::url($p->image_path) : null,
                 'category_id' => $p->category_id,
-                'category_name' => optional($p->category)->name,
+                'category_name' => $p->taxonomies->pluck('name')->toArray(),
             ];
         });
-
         // Fetch categories (main + sub) for filter
         $categories = Taxonomy::query()
             ->where('type', 'category')
@@ -73,10 +73,12 @@ class ProductController extends Controller
         $product = Product::create([
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
+            'slug' => Str::slug($data['name']),
             'price' => $data['price'],
-            'category_id' => $data['category_id'] ?? null,
             'image_path' => $imagePath,
         ]);
+
+        $product->attachTaxonomies($data['category_id']);
 
         return redirect()->back()->with('success', 'Product created');
     }
@@ -115,6 +117,7 @@ class ProductController extends Controller
             Storage::disk('public')->delete($product->image_path);
         }
         $product->delete();
+
         return redirect()->back()->with('success', 'Product deleted');
     }
 }
