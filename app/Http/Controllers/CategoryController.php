@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
 use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,28 +17,22 @@ class CategoryController extends Controller
      */
     public function index(Request $request): Response
     {
-        // Fetch root categories with nested children for type 'category'
-        $roots = Taxonomy::query()
-            ->where('type', 'category')
-            ->whereNull('parent_id')
-            ->with(['children' => function ($q) {
-                $q->with('children');
-            }])
-            ->orderBy('name')
-            ->get();
 
-        $transform = function ($term) use (&$transform) {
-            return [
-                'id' => $term->getKey(),
-                'name' => $term->name,
-                'slug' => $term->slug,
-                'children' => $term->relationLoaded('children')
-                    ? $term->children->map(fn ($c) => $transform($c))->values()->all()
-                    : [],
-            ];
-        };
-
-        $categories = $roots->map(fn ($t) => $transform($t))->values()->all();
+        $categories = Taxonomy::tree(TaxonomyType::Category)
+            ->map(function ($category) {
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                    'children' => $category->children->map(function ($child) {
+                        return [
+                            'id' => $child->id,
+                            'name' => $child->name,
+                            'slug' => $child->slug,
+                        ];
+                    }),
+                ];
+            });
 
         return Inertia::render('categories/index', [
             'categories' => $categories,
@@ -56,13 +51,13 @@ class CategoryController extends Controller
         ]);
 
         DB::transaction(function () use ($data) {
-            $category = new Taxonomy();
+            $category = new Taxonomy;
             $category->type = 'category';
             $category->name = $data['name'];
-            if (!empty($data['slug'])) {
+            if (! empty($data['slug'])) {
                 $category->slug = $data['slug'];
             }
-            if (!empty($data['parent_id'])) {
+            if (! empty($data['parent_id'])) {
                 $category->parent_id = $data['parent_id'];
             }
             $category->save();

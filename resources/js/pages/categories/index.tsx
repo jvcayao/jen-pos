@@ -3,7 +3,7 @@ import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { type BreadcrumbItem } from '@/types';
 import { ChevronDown, ChevronRight, FolderTree, Link as LinkIcon, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { categoriesDestroy, categoriesStore, categoriesUpdate } from '@/routes/categories';
+import { destroy as categoriesDestroy, store as categoriesStore, update as categoriesUpdate } from '@/routes/categories';
 
 // Types representing a taxonomy term with children
 export type CategoryNode = {
@@ -251,7 +251,7 @@ export default function CategoriesIndex() {
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
         <div>
           <h1 className="text-xl font-semibold">Categories</h1>
-          <p className="text-sm text-muted-foreground">Manage main categories and sub-categories (powered by aliziodev/laravel-taxonomy).</p>
+          <p className="text-sm text-muted-foreground">Manage food categories and sub-categories.</p>
         </div>
 
         <div className="rounded-lg border border-sidebar-border/60 p-4 dark:border-sidebar-border">

@@ -2,17 +2,19 @@
 
 namespace App\Models;
 
+use Aliziodev\LaravelTaxonomy\Traits\HasTaxonomy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Product extends Model
 {
-    use HasFactory;
+    use HasFactory, HasTaxonomy;
 
     protected $fillable = [
         'name',
         'description',
+        'slug',
         'price',
         'image_path',
         'category_id',
@@ -30,7 +32,7 @@ class Product extends Model
 
     public function getImageUrlAttribute(): ?string
     {
-        if (!$this->image_path) {
+        if (! $this->image_path) {
             return null;
         }
 
@@ -38,6 +40,6 @@ class Product extends Model
             return $this->image_path;
         }
 
-        return asset('storage/' . ltrim($this->image_path, '/'));
+        return asset('storage/'.ltrim($this->image_path, '/'));
     }
 }
