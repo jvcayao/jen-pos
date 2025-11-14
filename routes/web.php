@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\OrdersController;
 use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -20,6 +21,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Products CRUD
     Route::resource('products', ProductController::class)
         ->only(['index', 'store', 'update', 'destroy']);
+
+    Route::get('/orders/{slug?}', [OrdersController::class, 'index'])->name('orders.index');
 });
 
 require __DIR__.'/settings.php';

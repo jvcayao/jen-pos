@@ -1,9 +1,9 @@
-import { Auth } from '@/types/index';
+import { Auth, NavItem } from '@/types/index';
 
 export interface SharedData {
     name: string;
-    quote: { message: string; author: string };
     auth: Auth;
     sidebarOpen: boolean;
+    menu: NavItem[];
     [key: string]: unknown;
 }

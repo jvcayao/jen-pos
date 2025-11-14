@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { type BreadcrumbItem } from '@/types'
 import { destroy as productsDestroy, index as productsIndex, store as productsStore, update as productsUpdate } from '@/routes/products'
 import { Plus, X, Pencil, Trash2, Image as ImageIcon, Search } from 'lucide-react'
-
 // Types coming from the controller payload
 export type Product = {
   id: number
@@ -201,7 +200,6 @@ export default function ProductsIndex() {
   const [openCreate, setOpenCreate] = useState(false)
 
   const breadcrumbs: BreadcrumbItem[] = useMemo(() => [
-    { title: 'Dashboard', href: '/dashboard' },
     { title: 'Products', href: productsIndex().url },
   ], [])
 

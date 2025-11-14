@@ -7,7 +7,7 @@ import { destroy as categoriesDestroy, store as categoriesStore, update as categ
 
 // Types representing a taxonomy term with children
 export type CategoryNode = {
-  id: number | string;
+  id: number ;
   name: string;
   slug: string | null;
   children?: CategoryNode[];
