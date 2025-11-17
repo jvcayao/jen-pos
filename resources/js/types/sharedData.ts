@@ -4,6 +4,6 @@ export interface SharedData {
     name: string;
     auth: Auth;
     sidebarOpen: boolean;
-    menu: NavItem[];
+    navigation: NavItem[];
     [key: string]: unknown;
 }

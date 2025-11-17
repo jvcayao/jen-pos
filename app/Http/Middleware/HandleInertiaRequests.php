@@ -44,12 +44,12 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'menu' => Taxonomy::tree(TaxonomyType::Category)
+            'navigation' => Taxonomy::tree(TaxonomyType::Category)
                 ->map(function ($category) {
                     return [
                         'id' => $category->id,
                         'title' => $category->name,
-                        'href' => route('orders.index', $category->slug),
+                        'href' => route('menu.index', $category->slug),
                         'slug' => $category->slug,
 
                     ];

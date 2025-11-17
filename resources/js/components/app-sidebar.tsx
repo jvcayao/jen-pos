@@ -21,7 +21,7 @@ import { SharedData } from '@/types/sharedData';
 
 export function AppSidebar() {
     const page = usePage<SharedData>();
-    const mainNavItems: NavItem[] = page.props.menu;
+    const mainNavItems: NavItem[] = page.props.navigation;
 
     return (
         <Sidebar collapsible="icon" variant="inset">

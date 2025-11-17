@@ -6,7 +6,7 @@ import { Head } from '@inertiajs/react';
 
 export default function OrdersIndex(){
     const breadcrumbs: BreadcrumbItem[] = useMemo(() => [
-        { title: 'Orders', href: '/orders'},
+        { title: 'Menu', href: '/menu'},
     ], [])
 
 
