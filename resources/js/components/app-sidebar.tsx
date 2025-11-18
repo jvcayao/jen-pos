@@ -15,30 +15,14 @@ import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { BookOpen, LayoutGrid } from 'lucide-react';
 import AppLogo from './app-logo';
+import { usePage } from '@inertiajs/react';
+import { SharedData } from '@/types/sharedData';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Products',
-        href: '/products',
-        icon: BookOpen,
-    },
-    {
-        title: 'Categories',
-        href: '/categories',
-        icon: LayoutGrid,
-    },
-];
-
-const footerNavItems: NavItem[] = [
-
-];
 
 export function AppSidebar() {
+    const page = usePage<SharedData>();
+    const mainNavItems: NavItem[] = page.props.navigation;
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -58,7 +42,6 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

@@ -6,8 +6,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
-import { logout } from '@/routes';
-import { edit } from '@/routes/profile';
+import { logout,dashboard } from '@/routes';
+import { index as productsIndex } from '@/routes/products'
+import { index as categoriesIndex } from '@/routes/categories'
+import { edit as editProfile } from '@/routes/profile';
 import { type User } from '@/types';
 import { Link, router } from '@inertiajs/react';
 import { LogOut, Settings } from 'lucide-react';
@@ -36,7 +38,43 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                 <DropdownMenuItem asChild>
                     <Link
                         className="block w-full"
-                        href={edit()}
+                        href={dashboard.url()}
+                        as="button"
+                        prefetch
+                        onClick={cleanup}
+                    >
+                        <Settings className="mr-2" />
+                        Dashboard
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link
+                        className="block w-full"
+                        href={productsIndex.url()}
+                        as="button"
+                        prefetch
+                        onClick={cleanup}
+                    >
+                        <Settings className="mr-2" />
+                        Product
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link
+                        className="block w-full"
+                        href={categoriesIndex.url()}
+                        as="button"
+                        prefetch
+                        onClick={cleanup}
+                    >
+                        <Settings className="mr-2" />
+                        Categories
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link
+                        className="block w-full"
+                        href={editProfile()}
                         as="button"
                         prefetch
                         onClick={cleanup}
@@ -45,6 +83,7 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                         Settings
                     </Link>
                 </DropdownMenuItem>
+
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
