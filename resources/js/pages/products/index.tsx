@@ -11,6 +11,7 @@ export type Product = {
   description?: string | null
   price: string | number
   image_url?: string | null
+    category_parent_id?: string | null
   category_id?: string | null
   category_name?: string | null
 }
