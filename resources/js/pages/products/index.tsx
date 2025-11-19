@@ -16,7 +16,7 @@ export type Product = {
   category_name?: string | null
 }
 
-export type CategoryOption = { id: string; name: string }
+export type CategoryOption = { id: string; name: string; slug: string }
 
 interface PageProps {
   products: Product[]
@@ -30,9 +30,22 @@ function useQuerySync(initial: { search?: string; category?: string }) {
 
   // Submit query when user stops typing or changes category
   useEffect(() => {
-    const t = setTimeout(() => {
-      router.get(productsIndex({ query: { search, category: category || undefined } }).url, {}, { preserveState: true, preserveScroll: true, replace: true })
-    }, 300)
+      const t = setTimeout(() => {
+          // Build query string from search and category
+          const params: Record<string, string> = {};
+          if (search) params.search = search;
+          // Use taxonomy slug for category
+          if (category) params.category = category;
+          const queryString = new URLSearchParams(params).toString();
+          // Use pathname only, not full href
+          const baseUrl = window.location.pathname;
+          const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
+          router.get(
+              url,
+              {},
+              { preserveState: true, preserveScroll: true, replace: true }
+          )
+      }, 300)
     return () => clearTimeout(t)
   }, [search, category])
 
@@ -157,7 +170,7 @@ function ProductCard({ product, categories }: { product: Product; categories: Ca
               <select className="h-8 rounded border border-input bg-background px-2 text-sm" value={form.data.category_id} onChange={(e) => form.setData('category_id', e.target.value)}>
                 <option value="">— None —</option>
                 {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.slug}>{c.name}</option>
                 ))}
               </select>
             </div>
@@ -200,6 +213,7 @@ export default function ProductsIndex() {
   const { search, setSearch, category, setCategory } = useQuerySync(props.filters ?? {})
   const [openCreate, setOpenCreate] = useState(false)
 
+
   const breadcrumbs: BreadcrumbItem[] = useMemo(() => [
     { title: 'Products', href: productsIndex().url },
   ], [])
@@ -229,7 +243,7 @@ export default function ProductsIndex() {
             <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-9 rounded border border-input bg-background px-3 text-sm">
               <option value="">All categories</option>
               {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.slug}>{c.name}</option>
               ))}
             </select>
           </div>

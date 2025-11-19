@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Aliziodev\LaravelTaxonomy\Traits\HasTaxonomy;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Aliziodev\LaravelTaxonomy\Traits\HasTaxonomy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Product extends Model
 {
@@ -32,7 +32,7 @@ class Product extends Model
 
     public function getImageUrlAttribute(): ?string
     {
-        if (! $this->image_path) {
+        if (!$this->image_path) {
             return null;
         }
 

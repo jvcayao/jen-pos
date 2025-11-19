@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
-use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\RedirectResponse;
+use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
+use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
 
 class CategoryController extends Controller
 {
@@ -54,10 +54,10 @@ class CategoryController extends Controller
             $category = new Taxonomy;
             $category->type = 'category';
             $category->name = $data['name'];
-            if (! empty($data['slug'])) {
+            if (!empty($data['slug'])) {
                 $category->slug = $data['slug'];
             }
-            if (! empty($data['parent_id'])) {
+            if (!empty($data['parent_id'])) {
                 $category->parent_id = $data['parent_id'];
             }
             $category->save();

@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
-use Aliziodev\LaravelTaxonomy\Facades\Taxonomy;
-use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
+use Illuminate\Database\Seeder;
+use Aliziodev\LaravelTaxonomy\Facades\Taxonomy;
+use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
 
 class MenuSeeder extends Seeder
 {

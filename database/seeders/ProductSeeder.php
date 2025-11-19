@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Aliziodev\LaravelTaxonomy\Facades\Taxonomy;
 use App\Models\Product;
-use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
+use Illuminate\Database\Seeder;
+use Aliziodev\LaravelTaxonomy\Facades\Taxonomy;
 
 class ProductSeeder extends Seeder
 {
@@ -159,7 +159,7 @@ class ProductSeeder extends Seeder
             $cat = Taxonomy::findBySlug(Str::slug($category));
             $sub = Taxonomy::findBySlug(Str::slug($subcategory));
 
-            if (! $sub) {
+            if (!$sub || !$cat) {
                 continue;
             }
 
@@ -170,7 +170,7 @@ class ProductSeeder extends Seeder
                 'description' => $name,
             ]);
 
-            $product->attachTaxonomies($sub);
+            $product->attachTaxonomies([$cat->id, $sub->id]);
         }
     }
 }

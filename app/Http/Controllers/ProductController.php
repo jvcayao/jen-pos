@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
+use Inertia\Inertia;
 use App\Models\Product;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Inertia\Inertia;
+use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
+use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
 
 class ProductController extends Controller
 {
@@ -15,16 +16,21 @@ class ProductController extends Controller
     {
         $query = Product::query();
 
-        if ($search = $request->string('search')->toString()) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-            });
-        }
+        $query->when($request->has('search'), function ($query) use ($request) {
 
-        if ($categoryId = $request->string('category')->toString()) {
-            $query->hasTaxonomies($categoryId);
-        }
+            $search = $request->string('search')->toString();
+
+            $query->where(function ($query) use ($search) {
+                $query->where('name', 'like', '%'.$search.'%');
+            });
+
+        });
+
+        $query->when($request->has('category'), function ($query) use ($request) {
+            $subCategory = $request->query('category');
+
+            $query->withTaxonomySlug($subCategory);
+        });
 
         $products = $query->latest()->get()->map(function (Product $p) {
             return [
@@ -37,13 +43,16 @@ class ProductController extends Controller
                 'category_name' => $p->taxonomies->pluck('name')->toArray(),
             ];
         });
-        // Fetch categories (main + sub) for filter
-        $categories = Taxonomy::query()
-            ->where('type', 'category')
-            ->select(['id', 'name'])
-            ->orderBy('name')
-            ->get()
-            ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name]);
+
+        // Fetch only subcategories for filter
+        $categories = collect();
+        $categories = Taxonomy::tree(TaxonomyType::Category)
+            ->flatMap(fn ($parent) => $parent->children->map(fn ($child) => [
+                'id' => $child->id,
+                'name' => $child->name,
+                'slug' => $child->slug,
+            ])
+            );
 
         return Inertia::render('products/index', [
             'products' => $products,
