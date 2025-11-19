@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Binafy\LaravelCart\Cartable;
 use Illuminate\Database\Eloquent\Model;
 use Aliziodev\LaravelTaxonomy\Traits\HasTaxonomy;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Product extends Model
+class Product extends Model implements Cartable
 {
     use HasFactory, HasTaxonomy;
 
@@ -41,5 +42,10 @@ class Product extends Model
         }
 
         return asset('storage/'.ltrim($this->image_path, '/'));
+    }
+
+    public function getPrice(): float
+    {
+        return (float) $this->price;
     }
 }

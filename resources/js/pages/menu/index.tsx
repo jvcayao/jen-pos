@@ -4,6 +4,8 @@ import { Image as ImageIcon, Search, ShoppingBag } from 'lucide-react';
 import { Head, router, useForm, usePage } from '@inertiajs/react'
 import { useEffect, useMemo, useState } from 'react'
 import { index as menuIndex } from '@/routes/menu';
+import CartSidebar from '@/components/cart-sidebar';
+
 export type Product = {
     id: number
     name: string
@@ -51,7 +53,15 @@ function useQuerySync(initial: { search?: string; category?: string }) {
 }
 
 function ProductCard({ product } : { product: Product }) {
+    const [loading, setLoading] = useState(false);
 
+    function handleAddToCart() {
+        setLoading(true);
+        router.post('/cart/add', { id: product.id }, {
+            onSuccess: () => setLoading(false),
+            onError: () => setLoading(false),
+        });
+    }
 
     return (
         <div className="group relative flex flex-col overflow-hidden rounded-lg border border-sidebar-border/60 bg-background shadow-sm transition hover:shadow-md dark:border-sidebar-border">
@@ -77,8 +87,13 @@ function ProductCard({ product } : { product: Product }) {
                         <div className="line-clamp-3 text-xs text-muted-foreground">{product.description}</div>
                     )}
                     <div className="mt-auto flex items-center justify-end gap-2 pt-1">
-
-                        <button onClick={() => console.log('clicked')} className="w-full inline-flex items-center justify-center gap-0 rounded bg-primary px-3 py-2 text-sm text-primary-foreground"><ShoppingBag className="h-4 w-4" />  {" "} Select Item</button>
+                        <button
+                            onClick={handleAddToCart}
+                            disabled={loading}
+                            className="w-full inline-flex items-center justify-center gap-0 rounded bg-primary px-3 py-2 text-sm text-primary-foreground"
+                        >
+                            <ShoppingBag className="h-4 w-4" />  {loading ? 'Adding...' : 'Select Item'}
+                        </button>
                     </div>
                 </>
             </div>
@@ -91,6 +106,7 @@ export default function MenuIndex(){
     const products = props.products ?? []
     const categories = props.categories ?? []
     const { search, setSearch, category, setCategory } = useQuerySync(props.filters ?? {})
+    const [cartOpen, setCartOpen] = useState(false);
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(() => [
         { title: 'Menu', href: '/menu'},
@@ -127,6 +143,14 @@ export default function MenuIndex(){
                         ))}
                     </div>
                 )}
+                <button
+                  className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-primary-foreground shadow-lg"
+                  onClick={() => setCartOpen(true)}
+                >
+                  <ShoppingBag className="h-5 w-5" />
+                  Cart
+                </button>
+                <CartSidebar open={cartOpen} onOpenChange={setCartOpen} />
             </div>
         </AppLayout>
     );

@@ -6,6 +6,7 @@ use Inertia\Inertia;
 use App\Models\Product;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
+use Binafy\LaravelCart\Models\Cart;
 use Illuminate\Support\Facades\Storage;
 use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
 use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
@@ -128,5 +129,21 @@ class ProductController extends Controller
         $product->delete();
 
         return redirect()->back()->with('success', 'Product deleted');
+    }
+
+    public function addToCart(Request $request)
+    {
+        $product = Product::findOrFail($request->input('id'));
+
+        Cart::query()->firstOrCreateWithStoreItems(
+            item: $product,
+            quantity: 1,
+            userId: auth()->user()->id
+        );
+
+        return redirect()->back()->with('flash', [
+            'message' => 'Item added to cart!',
+            'type' => 'success'
+        ]);
     }
 }
