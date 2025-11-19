@@ -31,11 +31,11 @@ import { useInitials } from '@/hooks/use-initials';
 import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem, type NavItem } from '@/types';
+import { SharedData } from '@/types/sharedData';
 import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
-import { SharedData } from '@/types/sharedData';
 
 const mainNavItems: NavItem[] = [
     {

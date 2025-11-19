@@ -6,9 +6,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
-import { logout,dashboard } from '@/routes';
-import { index as productsIndex } from '@/routes/products'
-import { index as categoriesIndex } from '@/routes/categories'
+import { dashboard, logout } from '@/routes';
+import { index as categoriesIndex } from '@/routes/categories';
+import { index as productsIndex } from '@/routes/products';
 import { edit as editProfile } from '@/routes/profile';
 import { type User } from '@/types';
 import { Link, router } from '@inertiajs/react';
@@ -83,7 +83,6 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                         Settings
                     </Link>
                 </DropdownMenuItem>
-
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>

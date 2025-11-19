@@ -1,80 +1,152 @@
-import { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+'use client';
+
+import { ArrowLeft } from 'lucide-react';
+import { useMemo, useState } from 'react';
+
 import { Button } from '@/components/ui/button';
-import { usePage, router } from '@inertiajs/react';
-import FlashMessage from '@/components/flash-message';
+import AppLayout from '@/layouts/app-layout';
+import { CartItem } from '@/pages/checkout/cart-item';
+import { CouponSection } from '@/pages/checkout/coupon-section';
+import { OrderSummary } from '@/pages/checkout/order-summary';
+import { PaymentMethods } from '@/pages/checkout/payment-method';
+import { BreadcrumbItem } from '@/types';
+import { Head } from '@inertiajs/react';
 
-export default function CheckoutPage() {
-  const { cart } = usePage().props;
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [address, setAddress] = useState('');
-  const [loading, setLoading] = useState(false);
+const cartData = [
+    {
+        id: '1',
+        name: 'Samsung Galaxy S23 Ultra S918B/DS 256GB',
+        color: 'Phantom Black',
+        price: 1049.99,
+        quantity: 2,
+        image: 'https://bundui-images.netlify.app/products/01.jpeg',
+    },
+    {
+        id: '2',
+        name: 'JBL Charge 3 Waterproof Portable Bluetooth Speaker',
+        color: 'Black',
+        price: 109.99,
+        quantity: 1,
+        image: 'https://bundui-images.netlify.app/products/02.jpeg',
+    },
+    {
+        id: '3',
+        name: 'GARMIN Fenix 7X 010-02541-11 Exclusive Version',
+        color: 'Black',
+        price: 349.99,
+        quantity: 1,
+        image: 'https://bundui-images.netlify.app/products/03.jpeg',
+    },
+    {
+        id: '4',
+        name: 'Beats Fit Pro - True Wireless Noise Cancelling Earbuds',
+        color: 'Phantom Black',
+        price: 199.99,
+        quantity: 1,
+        image: 'https://bundui-images.netlify.app/products/04.jpeg',
+    },
+    {
+        id: '5',
+        name: 'JLab Epic Air Sport ANC True Wireless Earbuds',
+        color: 'Black',
+        price: 99.99,
+        quantity: 1,
+        image: 'https://bundui-images.netlify.app/products/06.jpeg',
+    },
+];
 
-  function handleCheckout(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    router.post('/checkout', { name, email, address }, {
-      onFinish: () => setLoading(false),
-    });
-  }
+export type CartItemType = (typeof cartData)[number];
 
-  return (
-    <div className="min-h-screen bg-muted/40 flex items-center justify-center py-8 px-4">
-      <FlashMessage />
-      <Card className="w-full max-w-2xl shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">Checkout</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <form className="flex flex-col gap-4" onSubmit={handleCheckout}>
-            <Input
-              placeholder="Full Name"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              required
-            />
-            <Input
-              type="email"
-              placeholder="Email Address"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-            />
-            <Input
-              placeholder="Shipping Address"
-              value={address}
-              onChange={e => setAddress(e.target.value)}
-              required
-            />
-            <Button type="submit" className="mt-2" disabled={loading || !cart?.items?.length}>
-              {loading ? 'Processing...' : 'Place Order'}
-            </Button>
-          </form>
-          <div className="flex flex-col gap-4">
-            <div className="font-semibold text-lg mb-2">Order Summary</div>
-            <div className="flex flex-col gap-2">
-              {cart?.items?.length ? cart.items.map((item: any) => (
-                <div key={item.id} className="flex items-center justify-between border-b pb-2">
-                  <div>
-                    <div className="font-medium">{item.name}</div>
-                    <div className="text-sm text-muted-foreground">Qty: {item.qty}</div>
-                  </div>
-                  <div className="font-semibold">₱{Number(item.price * item.qty).toFixed(2)}</div>
+export default function Cart() {
+    const [cartItems, setCartItems] = useState<CartItemType[]>(cartData);
+
+    const breadcrumbs: BreadcrumbItem[] = useMemo(
+        () => [{ title: 'Checkout', href: '/checkout' }],
+        [],
+    );
+
+    const updateQuantity = (id: string, quantity: number) => {
+        setCartItems((items) =>
+            items.map((item) =>
+                item.id === id ? { ...item, quantity } : item,
+            ),
+        );
+    };
+
+    const removeItem = (id: string) => {
+        setCartItems((items) => items.filter((item) => item.id !== id));
+    };
+
+    const handleApplyCoupon = (code: string) => {
+        console.log('Applying coupon:', code);
+        // Implement coupon logic here
+    };
+
+    const subtotal = cartItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0,
+    );
+    const discount = 0;
+    const delivery = 29.99;
+    const tax = 39.99;
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Menu" />
+            <div className="min-h-screen bg-background p-4 lg:p-8">
+                <div className="mx-auto max-w-7xl">
+                    {/* Main Content Grid */}
+                    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                        <div className="lg:col-span-2">
+                            <div className="border-cart-border rounded-lg border bg-card p-6">
+                                <h1 className="mb-6 text-2xl font-semibold">
+                                    Cart Items
+                                </h1>
+                                {/* Cart Items */}
+                                <div className="space-y-4">
+                                    {cartItems.map((item) => (
+                                        <CartItem
+                                            key={item.id}
+                                            {...item}
+                                            onUpdateQuantity={updateQuantity}
+                                            onRemove={removeItem}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="mt-6 flex flex-col gap-4 sm:flex-row">
+                                <Button
+                                    variant="outline"
+                                    className="flex items-center gap-2"
+                                >
+                                    <ArrowLeft className="h-4 w-4" />
+                                    Back
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    className="bg-destructive hover:bg-destructive/90"
+                                >
+                                    Cancel Order
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Right Sidebar */}
+                        <div className="space-y-6">
+                            <CouponSection onApplyCoupon={handleApplyCoupon} />
+                            <OrderSummary
+                                subtotal={subtotal}
+                                discount={discount}
+                                delivery={delivery}
+                                tax={tax}
+                            />
+                            <PaymentMethods />
+                        </div>
+                    </div>
                 </div>
-              )) : <div className="text-muted-foreground">Your cart is empty.</div>}
             </div>
-            <div className="flex items-center justify-between mt-4 text-base font-semibold">
-              <span>Total</span>
-              <span>₱{Number(cart?.total || 0).toFixed(2)}</span>
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <span className="text-xs text-muted-foreground">By placing your order, you agree to our Terms & Conditions.</span>
-        </CardFooter>
-      </Card>
-    </div>
-  );
+        </AppLayout>
+    );
 }

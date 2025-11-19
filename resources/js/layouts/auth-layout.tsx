@@ -6,11 +6,6 @@ export default function AuthLayout({
     ...props
 }: {
     children: React.ReactNode;
-
 }) {
-    return (
-        <AuthLayoutTemplate {...props}>
-            {children}
-        </AuthLayoutTemplate>
-    );
+    return <AuthLayoutTemplate {...props}>{children}</AuthLayoutTemplate>;
 }

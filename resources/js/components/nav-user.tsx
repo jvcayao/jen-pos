@@ -12,9 +12,9 @@ import {
 import { UserInfo } from '@/components/user-info';
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { SharedData } from '@/types/sharedData';
 import { usePage } from '@inertiajs/react';
 import { ChevronsUpDown } from 'lucide-react';
-import { SharedData } from '@/types/sharedData';
 
 export function NavUser() {
     const { auth } = usePage<SharedData>().props;
