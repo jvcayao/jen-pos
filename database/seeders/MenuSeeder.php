@@ -17,75 +17,65 @@ class MenuSeeder extends Seeder
          * ------------------------------------------------------------
          */
         $categories = [
-            'Appetizers' => [
-                'Salads',
-                'Soups',
-                'Finger Foods',
-                'Dips & Sides',
+           'Cakes Breads & Pizza' => [
+               'Bread with toppings',
+               'Regular Bread',
+               'Pizzas',
+               'Cookies',
+               'Cakes',
+               'Muffins',
+               'Waffles',
+               'Donuts',
+               'Brownies',
+               'Baked'
+           ],
+
+            'Snacks & Dessert' => [
+                'Rice Cakes',
+                'Snacks',
+                'Desserts',
+
             ],
 
-            'Main Course' => [
-                'Beef Dishes',
-                'Pork Dishes',
+            'Burger & Sandwiches' => [
+                'Specialty Sandwich',
+                'Burgers'
+            ],
+
+            'Breakfast Meal' => [
+                'Congee / Porridge',
+                'Silog Meal',
+                'Regular Breakfast',
+                'Pancakes'
+
+            ],
+
+            'Soups & Noodles' => [
+                'Beef Noodles',
+                'Chicken Noodles',
+                'Pancit',
+                'Spaghettis',
+                'Korean Noodles',
+                'Soups'
+
+            ],
+
+            'Main Dishes & Sides' => [
                 'Chicken Dishes',
-                'Seafood Dishes',
-                'Vegetarian Dishes',
-                'Rice Meals',
-                'Pasta & Noodles',
+                'Pork Dishes',
+                'Vegetable Dishes',
+                'Grilled Dishes',
+                'Ceviche Dishes',
+                'Beef Dishes',
+                'Rice Dishes',
+                'Salads'
             ],
 
-            'Breakfast' => [
-                'Classic Breakfast Meals',
-                'Omelettes',
-                'Pancakes & Waffles',
-                'Sandwiches',
-            ],
-
-            'Burgers & Sandwiches' => [
-                'Beef Burgers',
-                'Chicken Burgers',
-                'Specialty Sandwiches',
-            ],
-
-            'Pizza' => [
-                'Classic Pizza',
-                'Specialty Pizza',
-                'Vegetarian Pizza',
-            ],
-
-            'Desserts' => [
-                'Cakes',
-                'Pastries',
-                'Ice Cream',
-                'Pies',
-            ],
-
-            'Beverages' => [
-                'Coffee',
-                'Tea',
-                'Juices',
-                'Soft Drinks',
-                'Smoothies',
-                'Alcoholic Drinks',
-            ],
-
-            'Sides' => [
-                'Fries',
-                'Mashed Potato',
-                'Rice Variants',
-                'Side Salads',
-            ],
-
-            'Kids Menu' => [
-                'Kids Meals',
-                'Kids Drinks',
-                'Kids Desserts',
-            ],
-
-            'Combo Meals' => [
-                'Solo Combos',
-                'Family Sets',
-            ],
+            'Fruits & Drinks' => [
+                'Cold Drinks',
+                'Hot Drinks',
+                'Fruits'
+            ]
         ];
 
         /**

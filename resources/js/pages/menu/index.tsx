@@ -15,12 +15,13 @@ export type Product = {
     category_name?: string | null;
 };
 
-export type CategoryOptions = { id: string; name: string };
+export type CategoryOptions = { id: string; name: string; slug?: string };
 
 interface PageProps {
-    product: Product[];
+    products: Product[];
     categories: CategoryOptions[];
     filters: { search?: string; category?: string };
+    cart?: { count?: number; total?: number; items?: Array<Record<string, unknown>> };
 }
 
 function useQuerySync(initial: { search?: string; category?: string }) {
@@ -51,7 +52,7 @@ function useQuerySync(initial: { search?: string; category?: string }) {
     return { search, setSearch, category, setCategory };
 }
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart?: () => void }) {
     const [loading, setLoading] = useState(false);
 
     function handleAddToCart() {
@@ -60,7 +61,10 @@ function ProductCard({ product }: { product: Product }) {
             '/cart/add',
             { id: product.id },
             {
-                onSuccess: () => setLoading(false),
+                onSuccess: () => {
+                    setLoading(false);
+                    if (onAddToCart) onAddToCart();
+                },
                 onError: () => setLoading(false),
                 preserveState: true,
                 preserveScroll: true,
@@ -120,18 +124,25 @@ function ProductCard({ product }: { product: Product }) {
     );
 }
 export default function MenuIndex() {
-    const { props } = usePage<PageProps>();
+    const { props } = usePage<PageProps & Record<string, unknown>>();
     const products = props.products ?? [];
+    const initialCartCount = props.cart?.count ?? 0;
     const categories = props.categories ?? [];
     const { search, setSearch, category, setCategory } = useQuerySync(
         props.filters ?? {},
     );
     const [cartOpen, setCartOpen] = useState(false);
+    const [cartCount, setCartCount] = useState(initialCartCount);
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
         () => [{ title: 'Menu', href: '/menu' }],
         [],
     );
+
+    // Sync cartCount with props when page updates (e.g. after cart sidebar closes)
+    useEffect(() => {
+        setCartCount(initialCartCount);
+    }, [initialCartCount]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -173,7 +184,7 @@ export default function MenuIndex() {
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {products.map((p) => (
-                            <ProductCard key={p.id} product={p} />
+                            <ProductCard key={p.id} product={p} onAddToCart={() => setCartCount((c) => c + 1)} />
                         ))}
                     </div>
                 )}
@@ -183,6 +194,11 @@ export default function MenuIndex() {
                 >
                     <ShoppingBag className="h-5 w-5" />
                     Cart
+                    {cartCount > 0 && (
+                        <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-primary">
+                            {cartCount}
+                        </span>
+                    )}
                 </button>
                 <CartSidebar open={cartOpen} onOpenChange={setCartOpen} />
             </div>

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\Taxonomy as TaxonomyModel;
 use Aliziodev\LaravelTaxonomy\Facades\Taxonomy;
 use Aliziodev\LaravelTaxonomy\Models\Taxonomy as AliziodevTaxonomyModel;
+use Binafy\LaravelCart\Models\Cart;
 
 class MenuController extends Controller
 {
@@ -56,6 +57,13 @@ class MenuController extends Controller
         // Fetch categories (main + sub) for filter
         $categories = $this->getSubCategories($taxonomy);
 
+        $cartModel = Cart::query()->firstOrCreate(['user_id' => auth()->id()]);
+        $cart = [
+            'items' => [],
+            'total' => $cartModel->calculatedPriceByQuantity(),
+            'count' => $cartModel->items()->count(),
+        ];
+
         return Inertia::render('menu/index', [
             'products' => $products,
             'categories' => $categories,
@@ -63,6 +71,7 @@ class MenuController extends Controller
                 'search' => $request->get('search'),
                 'category' => $request->get('category'),
             ],
+            'cart' => $cart,
         ]);
 
     }
