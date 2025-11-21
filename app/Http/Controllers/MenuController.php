@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Aliziodev\LaravelTaxonomy\Facades\Taxonomy;
+use Inertia\Inertia;
 use App\Models\Product;
-use App\Models\Taxonomy as TaxonomyModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Inertia\Inertia;
+use App\Models\Taxonomy as TaxonomyModel;
+use Aliziodev\LaravelTaxonomy\Facades\Taxonomy;
+use Aliziodev\LaravelTaxonomy\Models\Taxonomy as AliziodevTaxonomyModel;
+use Binafy\LaravelCart\Models\Cart;
 
 class MenuController extends Controller
 {
@@ -15,11 +17,15 @@ class MenuController extends Controller
     {
         $query = Product::query();
 
-        $query->withTaxonomyHierarchy($taxonomy->id);
+        if ($taxonomy->exists) {
+            $query->withTaxonomyHierarchy($taxonomy->id);
+        }
+
         $query->with(['taxonomies']);
+
         $query->when($request->has('search'), function ($query) use ($request) {
 
-            $search = $request->query('search');
+            $search = $request->string('search')->toString();
 
             $query->where(function ($query) use ($search) {
                 $query->where('name', 'like', '%'.$search.'%');
@@ -49,15 +55,14 @@ class MenuController extends Controller
         });
 
         // Fetch categories (main + sub) for filter
-        $categories = Taxonomy::findBySlug($taxonomy->slug)->children->map(function ($subCategories) {
+        $categories = $this->getSubCategories($taxonomy);
 
-            return [
-                'id' => $subCategories->id,
-                'name' => $subCategories->name,
-                'slug' => $subCategories->slug,
-
-            ];
-        });
+        $cartModel = Cart::query()->firstOrCreate(['user_id' => auth()->id()]);
+        $cart = [
+            'items' => [],
+            'total' => $cartModel->calculatedPriceByQuantity(),
+            'count' => $cartModel->items()->count(),
+        ];
 
         return Inertia::render('menu/index', [
             'products' => $products,
@@ -66,7 +71,33 @@ class MenuController extends Controller
                 'search' => $request->get('search'),
                 'category' => $request->get('category'),
             ],
+            'cart' => $cart,
         ]);
+
+    }
+
+    public function getSubCategories(TaxonomyModel $taxonomy)
+    {
+        if (!$taxonomy->exists) {
+            return AliziodevTaxonomyModel::with('children')->get()->map(function ($subCategory) {
+                return [
+                    'id' => $subCategory->id,
+                    'name' => $subCategory->name,
+                    'slug' => $subCategory->slug,
+
+                ];
+            });
+        }
+
+        return Taxonomy::findBySlug($taxonomy->slug)->children->map(function ($subCategories) {
+
+            return [
+                'id' => $subCategories->id,
+                'name' => $subCategories->name,
+                'slug' => $subCategories->slug,
+
+            ];
+        });
 
     }
 }

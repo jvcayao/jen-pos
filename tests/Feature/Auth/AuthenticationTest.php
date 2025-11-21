@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\RateLimiter;
-use Laravel\Fortify\Features;
 use Tests\TestCase;
+use App\Models\User;
+use Laravel\Fortify\Features;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class AuthenticationTest extends TestCase
 {
@@ -34,7 +34,7 @@ class AuthenticationTest extends TestCase
 
     public function test_users_with_two_factor_enabled_are_redirected_to_two_factor_challenge()
     {
-        if (! Features::canManageTwoFactorAuthentication()) {
+        if (!Features::canManageTwoFactorAuthentication()) {
             $this->markTestSkipped('Two-factor authentication is not enabled.');
         }
 

@@ -85,7 +85,7 @@ return [
     | - Integrate with other packages or systems
     |
     */
-    'model' => \Aliziodev\LaravelTaxonomy\Models\Taxonomy::class,
+    'model' => Aliziodev\LaravelTaxonomy\Models\Taxonomy::class,
 
     /*
     |--------------------------------------------------------------------------

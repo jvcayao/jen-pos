@@ -1,4 +1,3 @@
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -12,12 +11,9 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
-import { BookOpen, LayoutGrid } from 'lucide-react';
-import AppLogo from './app-logo';
-import { usePage } from '@inertiajs/react';
 import { SharedData } from '@/types/sharedData';
-
+import { Link, usePage } from '@inertiajs/react';
+import AppLogo from './app-logo';
 
 export function AppSidebar() {
     const page = usePage<SharedData>();

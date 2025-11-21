@@ -2,10 +2,10 @@
 
 namespace App\Http\Middleware;
 
-use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
-use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
-use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Illuminate\Http\Request;
+use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
+use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -43,7 +43,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
-            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'sidebarOpen' => !$request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'navigation' => Taxonomy::tree(TaxonomyType::Category)
                 ->map(function ($category) {
                     return [
