@@ -22,6 +22,8 @@ export const CartItem = ({
     onUpdateQuantity,
     onRemove,
 }: CartItemProps) => {
+    // Ensure price is a number before formatting
+    const displayPrice = typeof price === 'number' ? price : Number(price) || 0;
     return (
         <div className="bg-cart-item border-cart-border flex items-center gap-4 rounded-lg border p-4">
             {/* Product Image */}
@@ -70,7 +72,7 @@ export const CartItem = ({
 
             {/* Price */}
             <div className="text-cart-price min-w-[80px] text-right text-sm font-semibold lg:text-base">
-                ${price.toFixed(2)}
+                ${displayPrice.toFixed(2)}
             </div>
 
             {/* Remove Button */}

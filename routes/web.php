@@ -30,7 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/cart/update', [CartController::class, 'update']);
     Route::post('/cart/add', [ProductController::class, 'addToCart']);
 
-    Route::get('/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
+    Route::get('cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
 });
 
 require __DIR__.'/settings.php';

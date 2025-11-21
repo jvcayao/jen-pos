@@ -1,4 +1,3 @@
-import FlashMessage from '@/components/flash-message';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -70,6 +69,7 @@ export default function CartSidebar({
     }
 
     useEffect(() => {
+        // eslint-disable-next-line
         if (open) fetchCart();
     }, [open]);
 
@@ -100,9 +100,23 @@ export default function CartSidebar({
         );
     }
 
+    function handleProceedToCheckout() {
+        setLoading(true);
+        router.get(
+          '/cart/checkout',
+            {},
+            {
+                onError: () => setLoading(false),
+                preserveState: true,
+                preserveScroll: true,
+            }
+
+        );
+    }
+
+
     return (
         <>
-            <FlashMessage />
             <Sheet open={open} onOpenChange={onOpenChange}>
                 <SheetContent side="right" className="w-full max-w-sm p-0">
                     <SheetHeader className="flex flex-row items-center justify-between border-b px-6 py-4">
@@ -208,6 +222,9 @@ export default function CartSidebar({
                         <Button
                             className="mt-2 w-full"
                             disabled={cart.items.length === 0}
+                            onClick={() => {
+                                handleProceedToCheckout();
+                            }}
                         >
                             Checkout
                         </Button>

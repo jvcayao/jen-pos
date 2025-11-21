@@ -8,10 +8,9 @@ interface OrderSummaryProps {
 export const OrderSummary = ({
     subtotal,
     discount,
-    delivery,
     tax,
 }: OrderSummaryProps) => {
-    const total = subtotal - discount + delivery + tax;
+    const total = subtotal - discount  + tax;
 
     return (
         <div className="border-cart-border rounded-lg border bg-card p-6">
@@ -21,11 +20,6 @@ export const OrderSummary = ({
                 <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Discount</span>
                     <span className="font-medium">${discount.toFixed(2)}</span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Delivery</span>
-                    <span className="font-medium">${delivery.toFixed(2)}</span>
                 </div>
 
                 <div className="flex items-center justify-between">
