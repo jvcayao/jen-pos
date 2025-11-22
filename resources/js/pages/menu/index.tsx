@@ -21,7 +21,11 @@ interface PageProps {
     products: Product[];
     categories: CategoryOptions[];
     filters: { search?: string; category?: string };
-    cart?: { count?: number; total?: number; items?: Array<Record<string, unknown>> };
+    cart?: {
+        count?: number;
+        total?: number;
+        items?: Array<Record<string, unknown>>;
+    };
 }
 
 function useQuerySync(initial: { search?: string; category?: string }) {
@@ -52,7 +56,13 @@ function useQuerySync(initial: { search?: string; category?: string }) {
     return { search, setSearch, category, setCategory };
 }
 
-function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart?: () => void }) {
+function ProductCard({
+    product,
+    onAddToCart,
+}: {
+    product: Product;
+    onAddToCart?: () => void;
+}) {
     const [loading, setLoading] = useState(false);
 
     function handleAddToCart() {
@@ -68,7 +78,7 @@ function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart?:
                 onError: () => setLoading(false),
                 preserveState: true,
                 preserveScroll: true,
-                replace: true
+                replace: true,
             },
         );
     }
@@ -114,7 +124,6 @@ function ProductCard({ product, onAddToCart }: { product: Product; onAddToCart?:
                             disabled={loading}
                             className="inline-flex w-full items-center justify-center gap-0 rounded bg-primary px-3 py-2 text-sm text-primary-foreground"
                         >
-
                             {loading ? 'Adding...' : 'Select Item'}
                         </button>
                     </div>
@@ -184,7 +193,11 @@ export default function MenuIndex() {
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {products.map((p) => (
-                            <ProductCard key={p.id} product={p} onAddToCart={() => setCartCount((c) => c + 1)} />
+                            <ProductCard
+                                key={p.id}
+                                product={p}
+                                onAddToCart={() => setCartCount((c) => c + 1)}
+                            />
                         ))}
                     </div>
                 )}

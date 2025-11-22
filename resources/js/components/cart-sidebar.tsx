@@ -103,17 +103,15 @@ export default function CartSidebar({
     function handleProceedToCheckout() {
         setLoading(true);
         router.get(
-          '/cart/checkout',
+            '/cart/checkout',
             {},
             {
                 onError: () => setLoading(false),
                 preserveState: true,
                 preserveScroll: true,
-            }
-
+            },
         );
     }
-
 
     return (
         <>

@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Minus, Plus, Trash2 } from 'lucide-react';
+import { ImageIcon, Minus, Plus, Trash2 } from 'lucide-react';
 
 interface CartItemProps {
     id: string;
@@ -28,11 +28,17 @@ export const CartItem = ({
         <div className="bg-cart-item border-cart-border flex items-center gap-4 rounded-lg border p-4">
             {/* Product Image */}
             <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-muted">
-                <img
-                    src={image}
-                    alt={name}
-                    className="h-full w-full rounded-lg object-cover"
-                />
+                {image ? (
+                    <img
+                        src={image}
+                        alt={name}
+                        className="h-full w-full rounded-lg object-cover"
+                    />
+                ) : (
+                    <div>
+                        <ImageIcon className="h-3 w-3" /> No image
+                    </div>
+                )}
             </div>
 
             {/* Product Details */}

@@ -5,11 +5,11 @@ namespace App\Http\Controllers;
 use Inertia\Inertia;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Binafy\LaravelCart\Models\Cart;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Taxonomy as TaxonomyModel;
 use Aliziodev\LaravelTaxonomy\Facades\Taxonomy;
 use Aliziodev\LaravelTaxonomy\Models\Taxonomy as AliziodevTaxonomyModel;
-use Binafy\LaravelCart\Models\Cart;
 
 class MenuController extends Controller
 {

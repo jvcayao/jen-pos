@@ -10,7 +10,7 @@ export const OrderSummary = ({
     discount,
     tax,
 }: OrderSummaryProps) => {
-    const total = subtotal - discount  + tax;
+    const total = subtotal - discount + tax;
 
     return (
         <div className="border-cart-border rounded-lg border bg-card p-6">

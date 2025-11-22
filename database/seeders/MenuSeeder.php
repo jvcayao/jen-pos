@@ -17,18 +17,18 @@ class MenuSeeder extends Seeder
          * ------------------------------------------------------------
          */
         $categories = [
-           'Cakes Breads & Pizza' => [
-               'Bread with toppings',
-               'Regular Bread',
-               'Pizzas',
-               'Cookies',
-               'Cakes',
-               'Muffins',
-               'Waffles',
-               'Donuts',
-               'Brownies',
-               'Baked'
-           ],
+            'Cakes Breads & Pizza' => [
+                'Bread with toppings',
+                'Regular Bread',
+                'Pizzas',
+                'Cookies',
+                'Cakes',
+                'Muffins',
+                'Waffles',
+                'Donuts',
+                'Brownies',
+                'Baked'
+            ],
 
             'Snacks & Dessert' => [
                 'Rice Cakes',
