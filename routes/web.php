@@ -8,9 +8,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/', function () {
-        return redirect()->route('dashboard');
-    })->name('home');
+    
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
