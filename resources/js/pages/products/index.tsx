@@ -1,3 +1,4 @@
+import AlertDialog from '@/components/alert-dialog';
 import AppLayout from '@/layouts/app-layout';
 import {
     destroy as productsDestroy,
@@ -15,9 +16,7 @@ import {
     Trash2,
     X,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import React from 'react';
-import AlertDialog from '@/components/alert-dialog';
+import React, { useEffect, useMemo, useState } from 'react';
 // Types coming from the controller payload
 export type Product = {
     id: number;
@@ -65,8 +64,6 @@ function useQuerySync(initial: { search?: string; category?: string }) {
 
     return { search, setSearch, category, setCategory };
 }
-
-
 
 function CreateProductModal({
     open,
@@ -242,7 +239,10 @@ function CreateProductModal({
                             // optimistic insert
                             try {
                                 const tempId = -Date.now();
-                                const catName = categories.find((c) => c.id === form.data.category_id)?.name ?? null;
+                                const catName =
+                                    categories.find(
+                                        (c) => c.id === form.data.category_id,
+                                    )?.name ?? null;
                                 const tempProduct: Product = {
                                     id: tempId,
                                     name: form.data.name,
@@ -314,7 +314,9 @@ function ProductCard({
     const doUpdate = () => {
         // optimistic update
         try {
-            const catName = categories.find((c) => c.slug === form.data.category_id)?.name ?? null;
+            const catName =
+                categories.find((c) => c.slug === form.data.category_id)
+                    ?.name ?? null;
             const optimistic: Product = {
                 ...product,
                 name: form.data.name,
@@ -466,7 +468,6 @@ function ProductCard({
                                 setEditing(false);
                             }}
                         />
-                        
                     </form>
                 ) : (
                     <>
@@ -478,20 +479,20 @@ function ProductCard({
                                 <div className="text-xs text-muted-foreground">
                                     {product.category_name ?? 'Uncategorized'}
                                 </div>
-                            <AlertDialog
-                                open={confirmDeleteOpen}
-                                title="Delete product?"
-                                description="This action cannot be undone. Delete the product?"
-                                confirmLabel="Delete"
-                                cancelLabel="Cancel"
-                                destructive
-                                onCancel={() => setConfirmDeleteOpen(false)}
-                                onConfirm={() => {
-                                    setConfirmDeleteOpen(false);
-                                    doDelete();
-                                }}
-                            />
-                        </div>
+                                <AlertDialog
+                                    open={confirmDeleteOpen}
+                                    title="Delete product?"
+                                    description="This action cannot be undone. Delete the product?"
+                                    confirmLabel="Delete"
+                                    cancelLabel="Cancel"
+                                    destructive
+                                    onCancel={() => setConfirmDeleteOpen(false)}
+                                    onConfirm={() => {
+                                        setConfirmDeleteOpen(false);
+                                        doDelete();
+                                    }}
+                                />
+                            </div>
                             <div className="shrink-0 rounded bg-muted px-2 py-0.5 text-xs font-semibold">
                                 ₱{Number(product.price).toFixed(2)}
                             </div>
@@ -524,10 +525,14 @@ function ProductCard({
 
 export default function ProductsIndex() {
     const { props } = usePage<PageProps>();
-    const [localProducts, setLocalProducts] = useState<Product[]>(() => props.products ?? []);
+    const [localProducts, setLocalProducts] = useState<Product[]>(
+        () => props.products ?? [],
+    );
     useEffect(() => {
         const next = props.products ?? [];
-        const same = localProducts.length === next.length && localProducts.every((p, i) => p.id === next[i].id);
+        const same =
+            localProducts.length === next.length &&
+            localProducts.every((p, i) => p.id === next[i].id);
         if (!same) setLocalProducts(next);
     }, [props.products, localProducts]);
     const categories = props.categories ?? [];
@@ -599,8 +604,20 @@ export default function ProductsIndex() {
                                 key={p.id}
                                 product={p}
                                 categories={categories}
-                                onOptimisticUpdate={(prod) => setLocalProducts((prev) => prev.map((x) => (x.id === prod.id ? { ...x, ...prod } : x)))}
-                                onOptimisticDelete={(id) => setLocalProducts((prev) => prev.filter((x) => x.id !== id))}
+                                onOptimisticUpdate={(prod) =>
+                                    setLocalProducts((prev) =>
+                                        prev.map((x) =>
+                                            x.id === prod.id
+                                                ? { ...x, ...prod }
+                                                : x,
+                                        ),
+                                    )
+                                }
+                                onOptimisticDelete={(id) =>
+                                    setLocalProducts((prev) =>
+                                        prev.filter((x) => x.id !== id),
+                                    )
+                                }
                             />
                         ))}
                     </div>
@@ -611,7 +628,9 @@ export default function ProductsIndex() {
                 open={openCreate}
                 onClose={() => setOpenCreate(false)}
                 categories={categories}
-                onOptimisticCreate={(p) => setLocalProducts((prev) => [p, ...prev])}
+                onOptimisticCreate={(p) =>
+                    setLocalProducts((prev) => [p, ...prev])
+                }
             />
         </AppLayout>
     );

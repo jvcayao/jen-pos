@@ -325,9 +325,7 @@ export default function CategoriesIndex() {
     const createRoot = useForm({ name: '', slug: '' as string | null });
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
-        () => [
-            { title: 'Categories', href: '/categories' },
-        ],
+        () => [{ title: 'Categories', href: '/categories' }],
         [],
     );
 
