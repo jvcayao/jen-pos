@@ -1,3 +1,4 @@
+import AlertDialog from '@/components/alert-dialog';
 import AppLayout from '@/layouts/app-layout';
 import {
     destroy as productsDestroy,
@@ -15,7 +16,7 @@ import {
     Trash2,
     X,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 // Types coming from the controller payload
 export type Product = {
     id: number;
@@ -68,10 +69,12 @@ function CreateProductModal({
     open,
     onClose,
     categories,
+    onOptimisticCreate,
 }: {
     open: boolean;
     onClose: () => void;
     categories: CategoryOption[];
+    onOptimisticCreate?: (p: Product) => void;
 }) {
     const form = useForm<{
         name: string;
@@ -87,8 +90,10 @@ function CreateProductModal({
         image: null,
     });
 
-    const submit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
+    const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
+
+    const doCreate = () => {
         form.post(productsStore().url, {
             forceFormData: true,
             preserveScroll: true,
@@ -99,6 +104,11 @@ function CreateProductModal({
         });
     };
 
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setConfirmCreateOpen(true);
+    };
+
     if (!open) return null;
 
     return (
@@ -107,7 +117,7 @@ function CreateProductModal({
                 <div className="mb-3 flex items-center justify-between">
                     <h2 className="text-lg font-semibold">Add product</h2>
                     <button
-                        onClick={onClose}
+                        onClick={() => setConfirmCancelOpen(true)}
                         className="rounded p-1 hover:bg-muted"
                         aria-label="Close"
                     >
@@ -205,7 +215,7 @@ function CreateProductModal({
                     <div className="flex items-center justify-end gap-2 pt-2">
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={() => setConfirmCancelOpen(true)}
                             className="h-9 rounded border px-3 text-sm"
                         >
                             Cancel
@@ -217,6 +227,52 @@ function CreateProductModal({
                             Create
                         </button>
                     </div>
+                    <AlertDialog
+                        open={confirmCreateOpen}
+                        title="Create product?"
+                        description="Are you sure you want to create this product?"
+                        confirmLabel="Create"
+                        cancelLabel="Back"
+                        onCancel={() => setConfirmCreateOpen(false)}
+                        onConfirm={() => {
+                            setConfirmCreateOpen(false);
+                            // optimistic insert
+                            try {
+                                const tempId = -Date.now();
+                                const catName =
+                                    categories.find(
+                                        (c) => c.id === form.data.category_id,
+                                    )?.name ?? null;
+                                const tempProduct: Product = {
+                                    id: tempId,
+                                    name: form.data.name,
+                                    description: form.data.description || null,
+                                    price: form.data.price,
+                                    image_url: null,
+                                    category_parent_id: null,
+                                    category_id: form.data.category_id || null,
+                                    category_name: catName,
+                                };
+                                onOptimisticCreate?.(tempProduct);
+                            } catch (e) {
+                                void e;
+                            }
+                            doCreate();
+                        }}
+                    />
+                    <AlertDialog
+                        open={confirmCancelOpen}
+                        title="Discard changes?"
+                        description="Discard the changes?"
+                        confirmLabel="Discard"
+                        cancelLabel="Keep editing"
+                        onCancel={() => setConfirmCancelOpen(false)}
+                        onConfirm={() => {
+                            setConfirmCancelOpen(false);
+                            form.reset();
+                            onClose();
+                        }}
+                    />
                 </form>
             </div>
         </div>
@@ -226,11 +282,18 @@ function CreateProductModal({
 function ProductCard({
     product,
     categories,
+    onOptimisticUpdate,
+    onOptimisticDelete,
 }: {
     product: Product;
     categories: CategoryOption[];
+    onOptimisticUpdate?: (p: Product) => void;
+    onOptimisticDelete?: (id: number) => void;
 }) {
     const [editing, setEditing] = useState(false);
+    const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
+    const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
     const form = useForm<{
         name: string;
         description: string;
@@ -244,19 +307,49 @@ function ProductCard({
         category_id: product.category_id ?? '',
         image: null,
     });
+    const onDelete = () => {
+        setConfirmDeleteOpen(true);
+    };
 
-    const onUpdate = (e: React.FormEvent) => {
-        e.preventDefault();
+    const doUpdate = () => {
+        // optimistic update
+        try {
+            const catName =
+                categories.find((c) => c.slug === form.data.category_id)
+                    ?.name ?? null;
+            const optimistic: Product = {
+                ...product,
+                name: form.data.name,
+                description: form.data.description || null,
+                price: form.data.price,
+                category_id: form.data.category_id || null,
+                category_name: catName,
+            };
+            onOptimisticUpdate?.(optimistic);
+        } catch (e) {
+            void e;
+        }
+
         form.post(productsUpdate(product.id).url, {
             forceFormData: true,
             preserveScroll: true,
-            onSuccess: () => setEditing(false),
+            onSuccess: () => {
+                setEditing(false);
+            },
         });
     };
 
-    const onDelete = () => {
-        if (!confirm('Delete this product?')) return;
-        form.delete(productsDestroy(product.id).url, { preserveScroll: true });
+    const doDelete = () => {
+        // optimistic remove
+        try {
+            onOptimisticDelete?.(product.id);
+        } catch (e) {
+            void e;
+        }
+
+        form.delete(productsDestroy(product.id).url, {
+            preserveScroll: true,
+        });
     };
 
     return (
@@ -276,7 +369,7 @@ function ProductCard({
             )}
             <div className="flex flex-1 flex-col gap-2 p-3">
                 {editing ? (
-                    <form onSubmit={onUpdate} className="flex flex-col gap-2">
+                    <form className="flex flex-col gap-2">
                         <input
                             className="h-8 rounded border border-input bg-background px-2 text-sm"
                             value={form.data.name}
@@ -335,6 +428,8 @@ function ProductCard({
                         )}
                         <div className="mt-1 flex items-center gap-2">
                             <button
+                                type="button"
+                                onClick={() => setConfirmSaveOpen(true)}
                                 className="h-8 rounded bg-primary px-3 text-xs text-primary-foreground disabled:opacity-50"
                                 disabled={form.processing}
                             >
@@ -342,12 +437,37 @@ function ProductCard({
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setEditing(false)}
+                                onClick={() => setConfirmCancelOpen(true)}
                                 className="h-8 rounded border px-3 text-xs"
                             >
                                 Cancel
                             </button>
                         </div>
+                        <AlertDialog
+                            open={confirmSaveOpen}
+                            title="Save changes?"
+                            description="Apply these changes to the product?"
+                            confirmLabel="Save"
+                            cancelLabel="Back"
+                            onCancel={() => setConfirmSaveOpen(false)}
+                            onConfirm={() => {
+                                setConfirmSaveOpen(false);
+                                doUpdate();
+                            }}
+                        />
+                        <AlertDialog
+                            open={confirmCancelOpen}
+                            title="Discard changes?"
+                            description="Discard the changes?"
+                            confirmLabel="Discard"
+                            cancelLabel="Keep editing"
+                            onCancel={() => setConfirmCancelOpen(false)}
+                            onConfirm={() => {
+                                setConfirmCancelOpen(false);
+                                form.reset();
+                                setEditing(false);
+                            }}
+                        />
                     </form>
                 ) : (
                     <>
@@ -359,6 +479,19 @@ function ProductCard({
                                 <div className="text-xs text-muted-foreground">
                                     {product.category_name ?? 'Uncategorized'}
                                 </div>
+                                <AlertDialog
+                                    open={confirmDeleteOpen}
+                                    title="Delete product?"
+                                    description="This action cannot be undone. Delete the product?"
+                                    confirmLabel="Delete"
+                                    cancelLabel="Cancel"
+                                    destructive
+                                    onCancel={() => setConfirmDeleteOpen(false)}
+                                    onConfirm={() => {
+                                        setConfirmDeleteOpen(false);
+                                        doDelete();
+                                    }}
+                                />
                             </div>
                             <div className="shrink-0 rounded bg-muted px-2 py-0.5 text-xs font-semibold">
                                 ₱{Number(product.price).toFixed(2)}
@@ -392,7 +525,16 @@ function ProductCard({
 
 export default function ProductsIndex() {
     const { props } = usePage<PageProps>();
-    const products = props.products ?? [];
+    const [localProducts, setLocalProducts] = useState<Product[]>(
+        () => props.products ?? [],
+    );
+    useEffect(() => {
+        const next = props.products ?? [];
+        const same =
+            localProducts.length === next.length &&
+            localProducts.every((p, i) => p.id === next[i].id);
+        if (!same) setLocalProducts(next);
+    }, [props.products, localProducts]);
     const categories = props.categories ?? [];
     const { search, setSearch, category, setCategory } = useQuerySync(
         props.filters ?? {},
@@ -451,17 +593,31 @@ export default function ProductsIndex() {
                     </div>
                 </div>
 
-                {products.length === 0 ? (
+                {localProducts.length === 0 ? (
                     <div className="text-sm text-muted-foreground">
                         No products found.
                     </div>
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {products.map((p) => (
+                        {localProducts.map((p) => (
                             <ProductCard
                                 key={p.id}
                                 product={p}
                                 categories={categories}
+                                onOptimisticUpdate={(prod) =>
+                                    setLocalProducts((prev) =>
+                                        prev.map((x) =>
+                                            x.id === prod.id
+                                                ? { ...x, ...prod }
+                                                : x,
+                                        ),
+                                    )
+                                }
+                                onOptimisticDelete={(id) =>
+                                    setLocalProducts((prev) =>
+                                        prev.filter((x) => x.id !== id),
+                                    )
+                                }
                             />
                         ))}
                     </div>
@@ -472,6 +628,9 @@ export default function ProductsIndex() {
                 open={openCreate}
                 onClose={() => setOpenCreate(false)}
                 categories={categories}
+                onOptimisticCreate={(p) =>
+                    setLocalProducts((prev) => [p, ...prev])
+                }
             />
         </AppLayout>
     );

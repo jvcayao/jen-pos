@@ -127,7 +127,7 @@ function CategoryItem({ node }: { node: CategoryNode }) {
                                     {node.name}
                                 </div>
                                 <div className="truncate text-xs text-muted-foreground">
-                                    /{node.slug}
+                                    menu/{node.slug}
                                 </div>
                             </>
                         )}
@@ -152,11 +152,11 @@ function CategoryItem({ node }: { node: CategoryNode }) {
                             <Trash2 className="h-3 w-3" /> Delete
                         </button>
                         <Link
-                            href={`#/products?category=${encodeURIComponent(String(node.id))}`}
+                            href={`/menu/${encodeURIComponent(String(node.slug))}`}
                             className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                             title="View products for this category (placeholder)"
                         >
-                            <LinkIcon className="h-3 w-3" /> Products
+                            <LinkIcon className="h-3 w-3" /> View Products
                         </Link>
                     </div>
                 </div>
@@ -280,7 +280,7 @@ function CategoryLeaf({ node }: { node: CategoryNode }) {
             </div>
             <div className="flex items-center justify-between gap-2">
                 <div className="text-xs text-muted-foreground">
-                    /{node.slug}
+                    /menu?category={node.slug}
                 </div>
                 <div className="flex items-center gap-2">
                     <button
@@ -296,10 +296,10 @@ function CategoryLeaf({ node }: { node: CategoryNode }) {
                         <Trash2 className="h-3 w-3" /> Delete
                     </button>
                     <Link
-                        href={`#/products?category=${encodeURIComponent(String(node.id))}`}
+                        href={`/menu?category=${encodeURIComponent(String(node.slug))}`}
                         className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                     >
-                        <LinkIcon className="h-3 w-3" /> Products
+                        <LinkIcon className="h-3 w-3" /> View Products
                     </Link>
                 </div>
             </div>
@@ -325,10 +325,7 @@ export default function CategoriesIndex() {
     const createRoot = useForm({ name: '', slug: '' as string | null });
 
     const breadcrumbs: BreadcrumbItem[] = useMemo(
-        () => [
-            { title: 'Dashboard', href: '/dashboard' },
-            { title: 'Categories', href: '/categories' },
-        ],
+        () => [{ title: 'Categories', href: '/categories' }],
         [],
     );
 
