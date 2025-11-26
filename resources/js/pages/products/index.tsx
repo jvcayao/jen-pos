@@ -69,12 +69,10 @@ function CreateProductModal({
     open,
     onClose,
     categories,
-    onOptimisticCreate,
 }: {
     open: boolean;
     onClose: () => void;
     categories: CategoryOption[];
-    onOptimisticCreate?: (p: Product) => void;
 }) {
     const form = useForm<{
         name: string;
@@ -95,7 +93,7 @@ function CreateProductModal({
 
     const doCreate = () => {
         form.post(productsStore().url, {
-            forceFormData: true,
+            forceFormData: true, // Needed for file uploads
             preserveScroll: true,
             onSuccess: () => {
                 form.reset();
@@ -235,28 +233,7 @@ function CreateProductModal({
                         cancelLabel="Back"
                         onCancel={() => setConfirmCreateOpen(false)}
                         onConfirm={() => {
-                            setConfirmCreateOpen(false);
-                            // optimistic insert
-                            try {
-                                const tempId = -Date.now();
-                                const catName =
-                                    categories.find(
-                                        (c) => c.id === form.data.category_id,
-                                    )?.name ?? null;
-                                const tempProduct: Product = {
-                                    id: tempId,
-                                    name: form.data.name,
-                                    description: form.data.description || null,
-                                    price: form.data.price,
-                                    image_url: null,
-                                    category_parent_id: null,
-                                    category_id: form.data.category_id || null,
-                                    category_name: catName,
-                                };
-                                onOptimisticCreate?.(tempProduct);
-                            } catch (e) {
-                                void e;
-                            }
+                            setConfirmCreateOpen(false); // Close alert first
                             doCreate();
                         }}
                     />
@@ -282,13 +259,9 @@ function CreateProductModal({
 function ProductCard({
     product,
     categories,
-    onOptimisticUpdate,
-    onOptimisticDelete,
 }: {
     product: Product;
     categories: CategoryOption[];
-    onOptimisticUpdate?: (p: Product) => void;
-    onOptimisticDelete?: (id: number) => void;
 }) {
     const [editing, setEditing] = useState(false);
     const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
@@ -312,26 +285,8 @@ function ProductCard({
     };
 
     const doUpdate = () => {
-        // optimistic update
-        try {
-            const catName =
-                categories.find((c) => c.slug === form.data.category_id)
-                    ?.name ?? null;
-            const optimistic: Product = {
-                ...product,
-                name: form.data.name,
-                description: form.data.description || null,
-                price: form.data.price,
-                category_id: form.data.category_id || null,
-                category_name: catName,
-            };
-            onOptimisticUpdate?.(optimistic);
-        } catch (e) {
-            void e;
-        }
-
-        form.post(productsUpdate(product.id).url, {
-            forceFormData: true,
+        // Use PUT for updates. Inertia handles method spoofing for file uploads.
+        form.put(productsUpdate(product.id).url, {
             preserveScroll: true,
             onSuccess: () => {
                 setEditing(false);
@@ -340,13 +295,6 @@ function ProductCard({
     };
 
     const doDelete = () => {
-        // optimistic remove
-        try {
-            onOptimisticDelete?.(product.id);
-        } catch (e) {
-            void e;
-        }
-
         form.delete(productsDestroy(product.id).url, {
             preserveScroll: true,
         });
@@ -525,19 +473,10 @@ function ProductCard({
 
 export default function ProductsIndex() {
     const { props } = usePage<PageProps>();
-    const [localProducts, setLocalProducts] = useState<Product[]>(
-        () => props.products ?? [],
-    );
-    useEffect(() => {
-        const next = props.products ?? [];
-        const same =
-            localProducts.length === next.length &&
-            localProducts.every((p, i) => p.id === next[i].id);
-        if (!same) setLocalProducts(next);
-    }, [props.products, localProducts]);
-    const categories = props.categories ?? [];
+    const { products, categories, filters } = props;
+
     const { search, setSearch, category, setCategory } = useQuerySync(
-        props.filters ?? {},
+        filters ?? {},
     );
     const [openCreate, setOpenCreate] = useState(false);
 
@@ -593,31 +532,17 @@ export default function ProductsIndex() {
                     </div>
                 </div>
 
-                {localProducts.length === 0 ? (
+                {products.length === 0 ? (
                     <div className="text-sm text-muted-foreground">
                         No products found.
                     </div>
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {localProducts.map((p) => (
+                        {products.map((p) => (
                             <ProductCard
                                 key={p.id}
                                 product={p}
                                 categories={categories}
-                                onOptimisticUpdate={(prod) =>
-                                    setLocalProducts((prev) =>
-                                        prev.map((x) =>
-                                            x.id === prod.id
-                                                ? { ...x, ...prod }
-                                                : x,
-                                        ),
-                                    )
-                                }
-                                onOptimisticDelete={(id) =>
-                                    setLocalProducts((prev) =>
-                                        prev.filter((x) => x.id !== id),
-                                    )
-                                }
                             />
                         ))}
                     </div>
@@ -628,9 +553,6 @@ export default function ProductsIndex() {
                 open={openCreate}
                 onClose={() => setOpenCreate(false)}
                 categories={categories}
-                onOptimisticCreate={(p) =>
-                    setLocalProducts((prev) => [p, ...prev])
-                }
             />
         </AppLayout>
     );
