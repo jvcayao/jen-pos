@@ -115,8 +115,9 @@ class ProductController extends Controller
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
             'price' => $data['price'],
-            'category_id' => $data['category_id'] ?? null,
         ])->save();
+
+        $product->attachTaxonomies($data['category_id']);
 
         return redirect()->back()->with('success', 'Product updated');
     }
