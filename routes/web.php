@@ -8,6 +8,8 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CategoryController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
+
+    Route::permanentRedirect('/', '/menu');
     
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
