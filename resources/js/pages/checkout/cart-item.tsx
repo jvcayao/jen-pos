@@ -36,7 +36,7 @@ export const CartItem = ({
                     />
                 ) : (
                     <div>
-                        <ImageIcon className="h-3 w-3" /> No image
+                        <ImageIcon className="h-3 w-3" /> 
                     </div>
                 )}
             </div>
