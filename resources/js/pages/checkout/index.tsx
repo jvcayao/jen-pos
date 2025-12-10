@@ -1,51 +1,22 @@
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
+import { type BreadcrumbItem } from '@/types';
+import type { CartItemData, CheckoutPageProps } from '@/types/checkout.d';
 import { CartItem } from '@/pages/checkout/cart-item';
 import { OrderSummary } from '@/pages/checkout/order-summary';
 import { PaymentMethods } from '@/pages/checkout/payment-method';
 import { Head, usePage } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 
-// Cart item type
-type CartItemType = {
-    id: number;
-    name: string;
-    price: number;
-    qty: number;
-    color?: string;
-    image?: string;
-};
-
-export interface Cart {
-    cart: Cart;
-}
-
-export interface CartItem {
-    items: Item[];
-    total: number;
-    count: number;
-}
-
-export interface Item {
-    id: number;
-    name: string;
-    price: string;
-    qty: number;
-}
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Checkout', href: '/checkout' }];
 
 export default function Checkout() {
-    // Use index signature for props to satisfy Inertia
-    const { cart } = usePage<Cart>().props;
+    const { cart } = usePage<CheckoutPageProps>().props;
     const items = cart.items || [];
     const total = cart.total || 0;
 
-    console.log(cart);
-
-    const breadcrumbs = [{ title: 'Checkout', href: '/checkout' }];
-
-    const updateQuantity = () => {};
-    const removeItem = () => {};
-    const handleApplyCoupon = () => {};
+    const updateQuantity = (_id: string, _qty: number) => {};
+    const removeItem = (_id: string) => {};
 
     const discount = 0;
     const tax = 0.12;
@@ -63,7 +34,7 @@ export default function Checkout() {
                                     Cart Items
                                 </h1>
                                 <div className="space-y-4">
-                                    {items.map((item: CartItemType) => (
+                                    {items.map((item: CartItemData) => (
                                         <CartItem
                                             key={item.id}
                                             id={String(item.id)}

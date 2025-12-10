@@ -7,6 +7,14 @@ import {
     update as productsUpdate,
 } from '@/routes/products';
 import { type BreadcrumbItem } from '@/types';
+import type { CategoryOption } from '@/types/category.d';
+import type {
+    CreateProductModalProps,
+    Product,
+    ProductCardProps,
+    ProductFormData,
+    ProductPageProps,
+} from '@/types/products.d';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
     Image as ImageIcon,
@@ -16,26 +24,9 @@ import {
     Trash2,
     X,
 } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
-// Types coming from the controller payload
-export type Product = {
-    id: number;
-    name: string;
-    description?: string | null;
-    price: string | number;
-    image_url?: string | null;
-    category_parent_id?: string | null;
-    category_id?: string | null;
-    category_name?: string | null;
-};
+import { type FormEvent, useEffect, useState } from 'react';
 
-export type CategoryOption = { id: string; name: string; slug: string };
-
-interface PageProps {
-    products: Product[];
-    categories: CategoryOption[];
-    filters: { search?: string; category?: string };
-}
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Products', href: productsIndex().url }];
 
 function useQuerySync(initial: { search?: string; category?: string }) {
     const [search, setSearch] = useState(initial.search ?? '');
@@ -69,18 +60,8 @@ function CreateProductModal({
     open,
     onClose,
     categories,
-}: {
-    open: boolean;
-    onClose: () => void;
-    categories: CategoryOption[];
-}) {
-    const form = useForm<{
-        name: string;
-        description: string;
-        price: number | string;
-        category_id: string | '';
-        image: File | null;
-    }>({
+}: CreateProductModalProps) {
+    const form = useForm<ProductFormData>({
         name: '',
         description: '',
         price: '',
@@ -102,7 +83,7 @@ function CreateProductModal({
         });
     };
 
-    const submit = (e: React.FormEvent) => {
+    const submit = (e: FormEvent) => {
         e.preventDefault();
         setConfirmCreateOpen(true);
     };
@@ -225,6 +206,7 @@ function CreateProductModal({
                             Create
                         </button>
                     </div>
+                    
                     <AlertDialog
                         open={confirmCreateOpen}
                         title="Create product?"
@@ -258,22 +240,13 @@ function CreateProductModal({
 
 function ProductCard({
     product,
-    categories,
-}: {
-    product: Product;
-    categories: CategoryOption[];
-}) {
+    categories = [],
+}: ProductCardProps) {
     const [editing, setEditing] = useState(false);
     const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
     const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
     const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-    const form = useForm<{
-        name: string;
-        description: string;
-        price: number | string;
-        category_id: string | '';
-        image: File | null;
-    }>({
+    const form = useForm<ProductFormData>({
         name: product.name,
         description: product.description ?? '',
         price: product.price,
@@ -472,18 +445,13 @@ function ProductCard({
 }
 
 export default function ProductsIndex() {
-    const { props } = usePage<PageProps>();
+    const { props } = usePage<ProductPageProps>();
     const { products, categories, filters } = props;
 
     const { search, setSearch, category, setCategory } = useQuerySync(
         filters ?? {},
     );
     const [openCreate, setOpenCreate] = useState(false);
-
-    const breadcrumbs: BreadcrumbItem[] = useMemo(
-        () => [{ title: 'Products', href: productsIndex().url }],
-        [],
-    );
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

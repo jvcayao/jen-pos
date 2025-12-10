@@ -3,101 +3,69 @@
 namespace App\Http\Controllers;
 
 use Inertia\Inertia;
+use Inertia\Response;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Binafy\LaravelCart\Models\Cart;
-use Illuminate\Support\Facades\Storage;
+use App\Http\Resources\CartResource;
+use App\Http\Resources\ProductResource;
 use App\Models\Taxonomy as TaxonomyModel;
 use Aliziodev\LaravelTaxonomy\Facades\Taxonomy;
 use Aliziodev\LaravelTaxonomy\Models\Taxonomy as AliziodevTaxonomyModel;
 
 class MenuController extends Controller
 {
-    public function index(Request $request, TaxonomyModel $taxonomy)
+    public function index(Request $request, TaxonomyModel $taxonomy): Response
     {
-        $query = Product::query();
+        $products = Product::query()
+            ->with('taxonomies')
+            ->when($taxonomy->exists, fn ($query) =>
+                $query->withTaxonomyHierarchy($taxonomy->id)
+            )
+            ->when($request->filled('search'), fn ($query) =>
+                $query->where('name', 'like', '%' . $request->string('search') . '%')
+            )
+            ->when($request->filled('category'), fn ($query) =>
+                $query->withTaxonomySlug($request->query('category'))
+            )
+            ->get();
 
-        if ($taxonomy->exists) {
-            $query->withTaxonomyHierarchy($taxonomy->id);
-        }
-
-        $query->with(['taxonomies']);
-
-        $query->when($request->has('search'), function ($query) use ($request) {
-
-            $search = $request->string('search')->toString();
-
-            $query->where(function ($query) use ($search) {
-                $query->where('name', 'like', '%'.$search.'%');
-            });
-
-        });
-
-        $query->when($request->has('category'), function ($query) use ($request) {
-            $subCategory = $request->query('category');
-
-            $query->withTaxonomySlug($subCategory);
-        });
-
-        $products = $query->get()->map(function (Product $p) {
-
-            return [
-                'id' => $p->id,
-                'name' => $p->name,
-                'description' => $p->description,
-                'price' => $p->price,
-                'image_url' => $p->image_path ? Storage::url($p->image_path) : null,
-                'category_parent_id' => $p->taxonomies->pluck('parent_id')->toArray(),
-                'category_id' => $p->taxonomies->pluck('id')->toArray(),
-                'category_name' => $p->taxonomies->pluck('name')->toArray(),
-
-            ];
-        });
-
-        // Fetch categories (main + sub) for filter
         $categories = $this->getSubCategories($taxonomy);
-
-        $cartModel = Cart::query()->firstOrCreate(['user_id' => auth()->id()]);
-        $cart = [
-            'items' => [],
-            'total' => $cartModel->calculatedPriceByQuantity(),
-            'count' => $cartModel->items()->count(),
-        ];
+        $cart = $this->getCartData();
 
         return Inertia::render('menu/index', [
-            'products' => $products,
+            'products' => ProductResource::collection($products)->resolve(),
             'categories' => $categories,
-            'filters' => [
-                'search' => $request->get('search'),
-                'category' => $request->get('category'),
-            ],
+            'filters' => $request->only(['search', 'category']),
             'cart' => $cart,
         ]);
-
     }
 
-    public function getSubCategories(TaxonomyModel $taxonomy)
+    private function getSubCategories(TaxonomyModel $taxonomy): mixed
     {
         if (!$taxonomy->exists) {
-            return AliziodevTaxonomyModel::with('children')->get()->map(function ($subCategory) {
-                return [
+            return AliziodevTaxonomyModel::with('children')
+                ->get()
+                ->map(fn ($subCategory) => [
                     'id' => $subCategory->id,
                     'name' => $subCategory->name,
                     'slug' => $subCategory->slug,
-
-                ];
-            });
+                ]);
         }
 
-        return Taxonomy::findBySlug($taxonomy->slug)->children->map(function ($subCategories) {
+        return Taxonomy::findBySlug($taxonomy->slug)
+            ->children
+            ->map(fn ($subCategory) => [
+                'id' => $subCategory->id,
+                'name' => $subCategory->name,
+                'slug' => $subCategory->slug,
+            ]);
+    }
 
-            return [
-                'id' => $subCategories->id,
-                'name' => $subCategories->name,
-                'slug' => $subCategories->slug,
+    private function getCartData(): array
+    {
+        $cartModel = Cart::query()->firstOrCreate(['user_id' => auth()->id()]);
 
-            ];
-        });
-
+        return CartResource::fromCart($cartModel);
     }
 }

@@ -50,11 +50,12 @@ export default function CartSidebar({
             {},
             {
                 onSuccess: (page) => {
+                    const pageProps = page.props as { cart?: CartState };
                     if (
-                        page.props.cart &&
-                        Array.isArray(page.props.cart.items)
+                        pageProps.cart &&
+                        Array.isArray(pageProps.cart.items)
                     ) {
-                        setCart(page.props.cart);
+                        setCart(pageProps.cart);
                     } else {
                         setCart({ items: [], total: 0, count: 0 });
                     }

@@ -1,10 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import type { CouponSectionProps } from '@/types/checkout.d';
 import { useState } from 'react';
-
-interface CouponSectionProps {
-    onApplyCoupon: (code: string) => void;
-}
 
 export const CouponSection = ({ onApplyCoupon }: CouponSectionProps) => {
     const [couponCode, setCouponCode] = useState('');

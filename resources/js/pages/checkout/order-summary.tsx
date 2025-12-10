@@ -1,9 +1,4 @@
-interface OrderSummaryProps {
-    subtotal: number;
-    discount: number;
-    delivery: number;
-    tax: number;
-}
+import type { OrderSummaryProps } from '@/types/checkout.d';
 
 export const OrderSummary = ({
     subtotal,

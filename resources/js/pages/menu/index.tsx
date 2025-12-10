@@ -1,32 +1,12 @@
 import CartSidebar from '@/components/cart-sidebar';
 import AppLayout from '@/layouts/app-layout';
-import { BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem } from '@/types';
+import type { MenuPageProps, MenuProductCardProps } from '@/types/menu.d';
 import { Head, router, usePage } from '@inertiajs/react';
 import { Image as ImageIcon, Search, ShoppingBag } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-export type Product = {
-    id: number;
-    name: string;
-    description?: string | null;
-    price: string | number;
-    image_url?: string | null;
-    category_id?: string | null;
-    category_name?: string | null;
-};
-
-export type CategoryOptions = { id: string; name: string; slug?: string };
-
-interface PageProps {
-    products: Product[];
-    categories: CategoryOptions[];
-    filters: { search?: string; category?: string };
-    cart?: {
-        count?: number;
-        total?: number;
-        items?: Array<Record<string, unknown>>;
-    };
-}
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Menu', href: '/menu' }];
 
 function useQuerySync(initial: { search?: string; category?: string }) {
     const [search, setSearch] = useState(initial.search ?? '');
@@ -59,10 +39,7 @@ function useQuerySync(initial: { search?: string; category?: string }) {
 function ProductCard({
     product,
     onAddToCart,
-}: {
-    product: Product;
-    onAddToCart?: () => void;
-}) {
+}: MenuProductCardProps) {
     const [loading, setLoading] = useState(false);
 
     function handleAddToCart() {
@@ -132,8 +109,9 @@ function ProductCard({
         </div>
     );
 }
+
 export default function MenuIndex() {
-    const { props } = usePage<PageProps & Record<string, unknown>>();
+    const { props } = usePage<MenuPageProps>();
     const products = props.products ?? [];
     const initialCartCount = props.cart?.count ?? 0;
     const categories = props.categories ?? [];
@@ -143,12 +121,6 @@ export default function MenuIndex() {
     const [cartOpen, setCartOpen] = useState(false);
     const [cartCount, setCartCount] = useState(initialCartCount);
 
-    const breadcrumbs: BreadcrumbItem[] = useMemo(
-        () => [{ title: 'Menu', href: '/menu' }],
-        [],
-    );
-
-    // Sync cartCount with props when page updates (e.g. after cart sidebar closes)
     useEffect(() => {
         setCartCount(initialCartCount);
     }, [initialCartCount]);

@@ -3,82 +3,93 @@
 namespace App\Http\Controllers;
 
 use Inertia\Inertia;
+use Inertia\Response;
 use App\Models\Product;
-use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Binafy\LaravelCart\Models\Cart;
+use App\Http\Resources\CartResource;
+use App\Http\Requests\AddToCartRequest;
+use App\Http\Requests\UpdateCartRequest;
+use App\Http\Requests\RemoveFromCartRequest;
 
 class CartController extends Controller
 {
-    public function index(Request $request)
+    public function index(): Response
     {
-        $cartModel = Cart::query()->firstOrCreate(['user_id' => auth()->id()]);
-        $cart = [
-            'items' => [],
-            'total' => $cartModel->calculatedPriceByQuantity(),
-            'count' => $cartModel->items()->count(),
-        ];
-        foreach ($cartModel->items as $item) {
-            $cart['items'][] = [
-                'id' => $item->id,
-                'name' => $item->itemable->name ?? '',
-                'price' => $item->itemable->price ?? 0,
-                'qty' => $item->quantity,
-            ];
-        }
+        $cart = $this->getCartData();
 
         return Inertia::render('menu/index', ['cart' => $cart]);
     }
 
-    public function remove(Request $request)
+    public function addToCart(AddToCartRequest $request): RedirectResponse
     {
-        $qty = $request->input('qty');
-        $id = $request->input('id');
+        $product = Product::findOrFail($request->validated('id'));
+        $cart = $this->getUserCart();
 
-        $product = Product::findOrFail($id);
+        if ($cart->items()->where('itemable_id', $product->id)->exists()) {
+            return back()->with('flash', [
+                'message' => 'Item already in cart!',
+                'type' => 'warning',
+            ]);
+        }
 
-        $cart = Cart::query()->firstOrCreate(['user_id' => auth()->user()->id]);
+        $cart->storeItem([
+            'itemable' => $product,
+            'quantity' => 1,
+        ]);
 
-        $cart->removeItem($product);
-
-        return redirect()->back()->with('flash', [
-            'message' => 'Item remove to cart!',
-            'type' => 'success'
+        return back()->with('flash', [
+            'message' => 'Item added to cart!',
+            'type' => 'success',
         ]);
     }
 
-    public function update(Request $request)
+    public function update(UpdateCartRequest $request): RedirectResponse
     {
-        $qty = $request->input('qty');
-        $id = $request->input('id');
-        $type = $request->input('type');
+        $validated = $request->validated();
+        $product = Product::findOrFail($validated['id']);
+        $cart = $this->getUserCart();
 
-        $product = Product::findOrFail($id);
+        match ($validated['type']) {
+            'increase' => $cart->increaseQuantity(item: $product, quantity: $validated['qty']),
+            'decrease' => $cart->decreaseQuantity(item: $product, quantity: $validated['qty']),
+        };
 
-        $cart = Cart::query()->firstOrCreate(['user_id' => auth()->user()->id]);
-
-        $type === 'increase' ? $cart->increaseQuantity(item: $product, quantity: $qty) : $cart->decreaseQuantity(item: $product, quantity: $qty);
-
-        return redirect()->back()->with('success', 'Item updated to cart');
-
+        return back()->with('flash', [
+            'message' => 'Cart updated successfully',
+            'type' => 'success',
+        ]);
     }
 
-    public function checkout(Request $request)
+    public function remove(RemoveFromCartRequest $request): RedirectResponse
     {
-        $cartModel = Cart::query()->firstOrCreate(['user_id' => auth()->id()]);
-        $cart = [
-            'items' => [],
-            'total' => $cartModel->calculatedPriceByQuantity(),
-            'count' => $cartModel->items()->count(),
-        ];
-        foreach ($cartModel->items as $item) {
-            $cart['items'][] = [
-                'id' => $item->id,
-                'name' => $item->itemable->name ?? '',
-                'price' => $item->itemable->price ?? 0,
-                'qty' => $item->quantity,
-            ];
-        }
+        $product = Product::findOrFail($request->validated('id'));
+        $cart = $this->getUserCart();
+
+        $cart->removeItem($product);
+
+        return back()->with('flash', [
+            'message' => 'Item removed from cart',
+            'type' => 'success',
+        ]);
+    }
+
+    public function checkout(): Response
+    {
+        $cart = $this->getCartData();
 
         return Inertia::render('checkout/index', ['cart' => $cart]);
+    }
+
+    private function getUserCart(): Cart
+    {
+        return Cart::query()->firstOrCreate(['user_id' => auth()->id()]);
+    }
+
+    private function getCartData(): array
+    {
+        $cartModel = $this->getUserCart();
+
+        return CartResource::fromCart($cartModel);
     }
 }

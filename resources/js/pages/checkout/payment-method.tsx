@@ -1,22 +1,25 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import type { PaymentMethod } from '@/types/checkout.d';
 import { useState } from 'react';
+
+const paymentMethods: PaymentMethod[] = [
+    {
+        id: 'cash',
+        name: 'Cash',
+        logos: ['Cash'],
+        component: 'external',
+    },
+    {
+        id: 'g-cash',
+        name: 'G Cash',
+        logos: ['g-cash'],
+        component: 'external',
+    },
+];
+
 export const PaymentMethods = () => {
-    const [selectedPayment, setSelectedPayment] = useState('card');
-    const paymentMethods = [
-        {
-            id: 'cash',
-            name: 'Cash',
-            logos: ['Cash'],
-            component: 'external',
-        },
-        {
-            id: 'g-cash',
-            name: 'G Cash',
-            logos: ['g-cash'],
-            component: 'external',
-        },
-    ];
+    const [selectedPayment, setSelectedPayment] = useState('cash');
 
     return (
         <div className="border-cart-border rounded-lg border bg-card p-6">
