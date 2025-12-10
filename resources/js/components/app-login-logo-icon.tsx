@@ -5,5 +5,11 @@ interface AppLoginLogoIconProps {
 }
 
 export default function AppLoginLogoIcon({ className }: AppLoginLogoIconProps) {
-    return <img src={SunbitesLoginLogo} alt="Sunbites Logo" className={className} />;
+    return (
+        <img
+            src={SunbitesLoginLogo}
+            alt="Sunbites Logo"
+            className={className}
+        />
+    );
 }

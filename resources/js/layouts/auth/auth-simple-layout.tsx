@@ -22,7 +22,7 @@ export default function AuthSimpleLayout({
                             <h1 className="text-xl font-medium">{title}</h1>
                         )}
                         {description && (
-                            <p className="text-sm text-muted-foreground text-center">
+                            <p className="text-center text-sm text-muted-foreground">
                                 {description}
                             </p>
                         )}

@@ -36,10 +36,7 @@ function useQuerySync(initial: { search?: string; category?: string }) {
     return { search, setSearch, category, setCategory };
 }
 
-function ProductCard({
-    product,
-    onAddToCart,
-}: MenuProductCardProps) {
+function ProductCard({ product, onAddToCart }: MenuProductCardProps) {
     const [loading, setLoading] = useState(false);
 
     function handleAddToCart() {

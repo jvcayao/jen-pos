@@ -18,7 +18,9 @@ import {
 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Categories', href: '/categories' }];
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Categories', href: '/categories' },
+];
 
 function CategoryItem({ node }: { node: CategoryNode }) {
     const [open, setOpen] = useState(true);

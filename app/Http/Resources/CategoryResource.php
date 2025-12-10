@@ -13,12 +13,11 @@ class CategoryResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'slug' => $this->slug,
-            'children' => $this->whenLoaded('children', fn () =>
-                $this->children->map(fn ($child) => [
-                    'id' => $child->id,
-                    'name' => $child->name,
-                    'slug' => $child->slug,
-                ])
+            'children' => $this->whenLoaded('children', fn () => $this->children->map(fn ($child) => [
+                'id' => $child->id,
+                'name' => $child->name,
+                'slug' => $child->slug,
+            ])
             ),
         ];
     }

@@ -6,9 +6,9 @@ use Binafy\LaravelCart\Cartable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Aliziodev\LaravelTaxonomy\Traits\HasTaxonomy;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Product extends Model implements Cartable
 {
@@ -44,7 +44,7 @@ class Product extends Model implements Cartable
                     return $this->image_path;
                 }
 
-                return asset('storage/' . ltrim($this->image_path, '/'));
+                return asset('storage/'.ltrim($this->image_path, '/'));
             }
         );
     }
@@ -56,8 +56,7 @@ class Product extends Model implements Cartable
 
     public function scopeSearch(Builder $query, ?string $search): Builder
     {
-        return $query->when($search, fn ($q) =>
-            $q->where('name', 'like', '%' . $search . '%')
+        return $query->when($search, fn ($q) => $q->where('name', 'like', '%'.$search.'%')
         );
     }
 }

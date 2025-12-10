@@ -7,10 +7,8 @@ import {
     update as productsUpdate,
 } from '@/routes/products';
 import { type BreadcrumbItem } from '@/types';
-import type { CategoryOption } from '@/types/category.d';
 import type {
     CreateProductModalProps,
-    Product,
     ProductCardProps,
     ProductFormData,
     ProductPageProps,
@@ -26,7 +24,9 @@ import {
 } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Products', href: productsIndex().url }];
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Products', href: productsIndex().url },
+];
 
 function useQuerySync(initial: { search?: string; category?: string }) {
     const [search, setSearch] = useState(initial.search ?? '');
@@ -206,7 +206,7 @@ function CreateProductModal({
                             Create
                         </button>
                     </div>
-                    
+
                     <AlertDialog
                         open={confirmCreateOpen}
                         title="Create product?"
@@ -238,10 +238,7 @@ function CreateProductModal({
     );
 }
 
-function ProductCard({
-    product,
-    categories = [],
-}: ProductCardProps) {
+function ProductCard({ product, categories = [] }: ProductCardProps) {
     const [editing, setEditing] = useState(false);
     const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
     const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);

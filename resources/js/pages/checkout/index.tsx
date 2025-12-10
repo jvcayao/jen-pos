@@ -1,14 +1,16 @@
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
-import type { CartItemData, CheckoutPageProps } from '@/types/checkout.d';
 import { CartItem } from '@/pages/checkout/cart-item';
 import { OrderSummary } from '@/pages/checkout/order-summary';
 import { PaymentMethods } from '@/pages/checkout/payment-method';
+import { type BreadcrumbItem } from '@/types';
+import type { CartItemData, CheckoutPageProps } from '@/types/checkout.d';
 import { Head, usePage } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Checkout', href: '/checkout' }];
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Checkout', href: '/checkout' },
+];
 
 export default function Checkout() {
     const { cart } = usePage<CheckoutPageProps>().props;

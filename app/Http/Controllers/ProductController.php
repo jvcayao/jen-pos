@@ -8,8 +8,8 @@ use App\Models\Product;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\ProductResource;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
@@ -21,22 +21,19 @@ class ProductController extends Controller
     {
         $products = Product::query()
             ->with('taxonomies')
-            ->when($request->filled('search'), fn ($query) =>
-                $query->where('name', 'like', '%' . $request->string('search') . '%')
+            ->when($request->filled('search'), fn ($query) => $query->where('name', 'like', '%'.$request->string('search').'%')
             )
-            ->when($request->filled('category'), fn ($query) =>
-                $query->withTaxonomySlug($request->query('category'))
+            ->when($request->filled('category'), fn ($query) => $query->withTaxonomySlug($request->query('category'))
             )
             ->latest()
             ->get();
 
         $categories = Taxonomy::tree(TaxonomyType::Category)
-            ->flatMap(fn ($parent) =>
-                $parent->children->map(fn ($child) => [
-                    'id' => $child->id,
-                    'name' => $child->name,
-                    'slug' => $child->slug,
-                ])
+            ->flatMap(fn ($parent) => $parent->children->map(fn ($child) => [
+                'id' => $child->id,
+                'name' => $child->name,
+                'slug' => $child->slug,
+            ])
             );
 
         return Inertia::render('products/index', [

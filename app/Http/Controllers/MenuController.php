@@ -19,14 +19,11 @@ class MenuController extends Controller
     {
         $products = Product::query()
             ->with('taxonomies')
-            ->when($taxonomy->exists, fn ($query) =>
-                $query->withTaxonomyHierarchy($taxonomy->id)
+            ->when($taxonomy->exists, fn ($query) => $query->withTaxonomyHierarchy($taxonomy->id)
             )
-            ->when($request->filled('search'), fn ($query) =>
-                $query->where('name', 'like', '%' . $request->string('search') . '%')
+            ->when($request->filled('search'), fn ($query) => $query->where('name', 'like', '%'.$request->string('search').'%')
             )
-            ->when($request->filled('category'), fn ($query) =>
-                $query->withTaxonomySlug($request->query('category'))
+            ->when($request->filled('category'), fn ($query) => $query->withTaxonomySlug($request->query('category'))
             )
             ->get();
 

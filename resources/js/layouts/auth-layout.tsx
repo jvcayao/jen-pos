@@ -6,9 +6,6 @@ interface AuthLayoutProps {
     description?: string;
 }
 
-export default function AuthLayout({
-    children,
-    ...props
-}: AuthLayoutProps) {
+export default function AuthLayout({ children, ...props }: AuthLayoutProps) {
     return <AuthLayoutTemplate {...props}>{children}</AuthLayoutTemplate>;
 }
