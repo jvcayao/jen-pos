@@ -1,55 +1,137 @@
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import AppLayout from '@/layouts/app-layout';
 import { CartItem } from '@/pages/checkout/cart-item';
 import { OrderSummary } from '@/pages/checkout/order-summary';
 import { PaymentMethods } from '@/pages/checkout/payment-method';
-import { Head, usePage } from '@inertiajs/react';
+import { type BreadcrumbItem } from '@/types';
+import type { CartItemData, CheckoutPageProps } from '@/types/checkout.d';
+import { Head, router, usePage } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
 
-// Cart item type
-type CartItemType = {
-    id: number;
-    name: string;
-    price: number;
-    qty: number;
-    color?: string;
-    image?: string;
-};
-
-export interface Cart {
-    cart: Cart;
-}
-
-export interface CartItem {
-    items: Item[];
-    total: number;
-    count: number;
-}
-
-export interface Item {
-    id: number;
-    name: string;
-    price: string;
-    qty: number;
-}
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Checkout', href: '/checkout' },
+];
 
 export default function Checkout() {
-    // Use index signature for props to satisfy Inertia
-    const { cart } = usePage<Cart>().props;
-    const items = cart.items || [];
-    const total = cart.total || 0;
-
-    console.log(cart);
-
-    const breadcrumbs = [{ title: 'Checkout', href: '/checkout' }];
-
-    const updateQuantity = () => {};
-    const removeItem = () => {};
-    const handleApplyCoupon = () => {};
+    const { cart } = usePage<CheckoutPageProps>().props;
+    const [cartItems, setCartItems] = useState<CartItemData[]>(
+        cart.items || [],
+    );
+    const [cartSubtotal, setCartSubtotal] = useState(cart.subtotal || 0);
+    const [cartVatAmount, setCartVatAmount] = useState(cart.vat_amount || 0);
+    const [cartTotal, setCartTotal] = useState(cart.total || 0);
+    const [taxRate, setTaxRate] = useState(cart.tax_rate || 0.12);
+    const [loading, setLoading] = useState(false);
+    const [showEmptyCartDialog, setShowEmptyCartDialog] = useState(
+        cart.items.length === 0,
+    );
+    const [showCancelDialog, setShowCancelDialog] = useState(false);
 
     const discount = 0;
-    const tax = 0.12;
-    const delivery = 0;
+
+    const fetchCart = () => {
+        router.get(
+            '/cart/checkout',
+            {},
+            {
+                onSuccess: (page) => {
+                    const pageProps = page.props as CheckoutPageProps;
+                    if (pageProps.cart && Array.isArray(pageProps.cart.items)) {
+                        setCartItems(pageProps.cart.items);
+                        setCartSubtotal(pageProps.cart.subtotal);
+                        setCartVatAmount(pageProps.cart.vat_amount);
+                        setCartTotal(pageProps.cart.total);
+                        setTaxRate(pageProps.cart.tax_rate);
+                        if (pageProps.cart.items.length === 0) {
+                            setShowEmptyCartDialog(true);
+                        }
+                    }
+                    setLoading(false);
+                },
+                onError: () => setLoading(false),
+                preserveState: true,
+                preserveScroll: true,
+                only: ['cart'],
+            },
+        );
+    };
+
+    const updateQuantity = (id: string, qty: number) => {
+        if (qty < 1) return;
+        setLoading(true);
+        const type =
+            qty > (cartItems.find((item) => String(item.id) === id)?.qty || 0)
+                ? 'increase'
+                : 'decrease';
+        router.post(
+            '/cart/update',
+            { id: Number(id), qty: 1, type },
+            {
+                onSuccess: fetchCart,
+                onError: () => setLoading(false),
+                preserveState: true,
+                preserveScroll: true,
+            },
+        );
+    };
+
+    const removeItem = (id: string) => {
+        setLoading(true);
+        router.post(
+            '/cart/remove',
+            { id: Number(id) },
+            {
+                onSuccess: fetchCart,
+                onError: () => setLoading(false),
+                preserveState: true,
+                preserveScroll: true,
+            },
+        );
+    };
+
+    const handleBack = () => {
+        if (cartItems.length === 0) {
+            setShowEmptyCartDialog(true);
+        } else {
+            router.get('/menu');
+        }
+    };
+
+    const handleCancelOrder = () => {
+        setShowCancelDialog(true);
+    };
+
+    const confirmCancelOrder = () => {
+        setLoading(true);
+        router.post(
+            '/orders/cancel',
+            {},
+            {
+                onSuccess: () => {
+                    setShowCancelDialog(false);
+                    router.get('/menu');
+                },
+                onError: () => {
+                    setLoading(false);
+                    setShowCancelDialog(false);
+                },
+            },
+        );
+    };
+
+    const handleEmptyCartRedirect = () => {
+        setShowEmptyCartDialog(false);
+        router.get('/menu');
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -63,25 +145,39 @@ export default function Checkout() {
                                     Cart Items
                                 </h1>
                                 <div className="space-y-4">
-                                    {items.map((item: CartItemType) => (
-                                        <CartItem
-                                            key={item.id}
-                                            id={String(item.id)}
-                                            name={item.name}
-                                            color={item.color ?? ''}
-                                            price={item.price}
-                                            quantity={item.qty}
-                                            image={item.image ?? ''}
-                                            onUpdateQuantity={updateQuantity}
-                                            onRemove={removeItem}
-                                        />
-                                    ))}
+                                    {loading ? (
+                                        <div className="py-8 text-center text-muted-foreground">
+                                            Loading...
+                                        </div>
+                                    ) : cartItems.length === 0 ? (
+                                        <div className="py-8 text-center text-muted-foreground">
+                                            Your cart is empty.
+                                        </div>
+                                    ) : (
+                                        cartItems.map((item: CartItemData) => (
+                                            <CartItem
+                                                key={item.id}
+                                                id={String(item.id)}
+                                                name={item.name}
+                                                color={item.color ?? ''}
+                                                price={item.price}
+                                                quantity={item.qty}
+                                                image={item.image ?? ''}
+                                                onUpdateQuantity={
+                                                    updateQuantity
+                                                }
+                                                onRemove={removeItem}
+                                            />
+                                        ))
+                                    )}
                                 </div>
                             </div>
                             <div className="mt-6 flex flex-col gap-4 sm:flex-row">
                                 <Button
                                     variant="outline"
                                     className="flex items-center gap-2"
+                                    onClick={handleBack}
+                                    disabled={loading}
                                 >
                                     <ArrowLeft className="h-4 w-4" />
                                     Back
@@ -89,6 +185,8 @@ export default function Checkout() {
                                 <Button
                                     variant="destructive"
                                     className="bg-destructive hover:bg-destructive/90"
+                                    onClick={handleCancelOrder}
+                                    disabled={loading || cartItems.length === 0}
                                 >
                                     Cancel Order
                                 </Button>
@@ -96,16 +194,68 @@ export default function Checkout() {
                         </div>
                         <div className="space-y-6">
                             <OrderSummary
-                                subtotal={total}
+                                total={cartTotal}
+                                vatableSales={cartSubtotal}
+                                vatAmount={cartVatAmount}
                                 discount={discount}
-                                tax={tax}
-                                delivery={delivery}
+                                taxRate={taxRate}
                             />
-                            <PaymentMethods />
+                            <PaymentMethods
+                                disabled={loading || cartItems.length === 0}
+                                subtotal={cartTotal}
+                            />
                         </div>
                     </div>
                 </div>
             </div>
+
+            <Dialog
+                open={showEmptyCartDialog}
+                onOpenChange={setShowEmptyCartDialog}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Cart is Empty</DialogTitle>
+                        <DialogDescription>
+                            Your cart is empty. Please add items to your cart
+                            before proceeding to checkout.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button onClick={handleEmptyCartRedirect}>
+                            Go to Menu
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Cancel Order</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to cancel this order? All
+                            items in your cart will be removed.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowCancelDialog(false)}
+                            disabled={loading}
+                        >
+                            No, Keep Order
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmCancelOrder}
+                            disabled={loading}
+                        >
+                            Yes, Cancel Order
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AppLayout>
     );
 }

@@ -5,6 +5,7 @@ import {
     update as categoriesUpdate,
 } from '@/routes/categories';
 import { type BreadcrumbItem } from '@/types';
+import type { CategoryNode, CategoryPageProps } from '@/types/category.d';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import {
     ChevronDown,
@@ -15,20 +16,11 @@ import {
     Plus,
     Trash2,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 
-// Types representing a taxonomy term with children
-export type CategoryNode = {
-    id: number;
-    name: string;
-    slug: string | null;
-    children?: CategoryNode[];
-};
-
-// Inertia page props
-interface PageProps {
-    categories: CategoryNode[];
-}
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Categories', href: '/categories' },
+];
 
 function CategoryItem({ node }: { node: CategoryNode }) {
     const [open, setOpen] = useState(true);
@@ -43,7 +35,7 @@ function CategoryItem({ node }: { node: CategoryNode }) {
     });
     const editForm = useForm({ name: node.name, slug: node.slug ?? '' });
 
-    const onCreateChild = (e: React.FormEvent) => {
+    const onCreateChild = (e: FormEvent) => {
         e.preventDefault();
         createChild.post(categoriesStore().url, {
             onSuccess: () => {
@@ -54,7 +46,7 @@ function CategoryItem({ node }: { node: CategoryNode }) {
         });
     };
 
-    const onUpdate = (e: React.FormEvent) => {
+    const onUpdate = (e: FormEvent) => {
         e.preventDefault();
         editForm.put(categoriesUpdate(node.id).url, {
             onSuccess: () => setEditing(false),
@@ -64,8 +56,6 @@ function CategoryItem({ node }: { node: CategoryNode }) {
 
     const onDelete = () => {
         if (!confirm('Delete this category and its sub-categories?')) return;
-        // send as form post with method delete to support some backends; use delete directly
-        // Inertia delete
         editForm.delete(categoriesDestroy(node.id).url, {
             preserveScroll: true,
         });
@@ -224,7 +214,7 @@ function CategoryLeaf({ node }: { node: CategoryNode }) {
     const hasChildren = (node.children?.length ?? 0) > 0;
     const form = useForm({ name: node.name, slug: node.slug ?? '' });
 
-    const onUpdate = (e: React.FormEvent) => {
+    const onUpdate = (e: FormEvent) => {
         e.preventDefault();
         form.put(categoriesUpdate(node.id).url, {
             onSuccess: () => setEditing(false),
@@ -320,16 +310,11 @@ function CategoryLeaf({ node }: { node: CategoryNode }) {
 }
 
 export default function CategoriesIndex() {
-    const { props } = usePage<PageProps>();
+    const { props } = usePage<CategoryPageProps>();
     const categories = props.categories ?? [];
     const createRoot = useForm({ name: '', slug: '' as string | null });
 
-    const breadcrumbs: BreadcrumbItem[] = useMemo(
-        () => [{ title: 'Categories', href: '/categories' }],
-        [],
-    );
-
-    const submitRoot = (e: React.FormEvent) => {
+    const submitRoot = (e: FormEvent) => {
         e.preventDefault();
         createRoot.post(categoriesStore().url, {
             preserveScroll: true,

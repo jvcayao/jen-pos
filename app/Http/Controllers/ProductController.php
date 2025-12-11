@@ -3,108 +3,91 @@
 namespace App\Http\Controllers;
 
 use Inertia\Inertia;
+use Inertia\Response;
 use App\Models\Product;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use Binafy\LaravelCart\Models\Cart;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use App\Http\Resources\ProductResource;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
 use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
 use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
 
 class ProductController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
-        $query = Product::query();
+        $products = Product::query()
+            ->with('taxonomies')
+            ->when($request->filled('search'), fn ($query) => $query->where('name', 'like', '%'.$request->string('search').'%'))
+            ->when($request->filled('category'), fn ($query) => $query->withTaxonomySlug($request->query('category')))
+            ->latest()
+            ->get();
 
-        $query->when($request->has('search'), function ($query) use ($request) {
-
-            $search = $request->string('search')->toString();
-
-            $query->where(function ($query) use ($search) {
-                $query->where('name', 'like', '%'.$search.'%');
-            });
-
-        });
-
-        $query->when($request->has('category'), function ($query) use ($request) {
-            $subCategory = $request->query('category');
-
-            $query->withTaxonomySlug($subCategory);
-        });
-
-        $products = $query->latest()->get()->map(function (Product $p) {
-            return [
-                'id' => $p->id,
-                'name' => $p->name,
-                'description' => $p->description,
-                'price' => $p->price,
-                'image_url' => $p->image_path ? Storage::url($p->image_path) : null,
-                'category_id' => $p->category_id,
-                'category_name' => $p->taxonomies->pluck('name')->toArray(),
-            ];
-        });
-
-        // Fetch only subcategories for filter
-        $categories = collect();
         $categories = Taxonomy::tree(TaxonomyType::Category)
             ->flatMap(fn ($parent) => $parent->children->map(fn ($child) => [
                 'id' => $child->id,
                 'name' => $child->name,
                 'slug' => $child->slug,
-            ])
-            );
+            ]));
 
         return Inertia::render('products/index', [
-            'products' => $products,
+            'products' => ProductResource::collection($products)->resolve(),
             'categories' => $categories,
-            'filters' => [
-                'search' => $request->get('search'),
-                'category' => $request->get('category'),
-            ],
+            'filters' => $request->only(['search', 'category']),
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreProductRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'price' => ['required', 'numeric', 'min:0'],
-            'category_id' => ['nullable', 'string'], // uuid string
-            'image' => ['nullable', 'image', 'mimes:jpeg,jpg,png', 'max:2048'],
-        ]);
+        $validated = $request->validated();
 
-        $imagePath = null;
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('products', 'public');
-        }
+        $imagePath = $request->hasFile('image')
+            ? $request->file('image')->store('products', 'public')
+            : null;
 
         $product = Product::create([
-            'name' => $data['name'],
-            'description' => $data['description'] ?? null,
-            'slug' => Str::slug($data['name']),
-            'price' => $data['price'],
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'slug' => Str::slug($validated['name']).'-'.Str::random(5),
+            'sku' => $validated['sku'] ?? null,
+            'barcode' => $validated['barcode'] ?? null,
+            'price' => $validated['price'],
+            'discount' => $validated['discount'] ?? 0,
+            'discount_to' => $validated['discount_to'] ?? null,
+            'vat' => $validated['vat'] ?? 0,
+            'has_vat' => $validated['has_vat'] ?? true,
+            'stock' => $validated['stock'] ?? 0,
+            'track_inventory' => $validated['track_inventory'] ?? false,
+            'is_activated' => $validated['is_activated'] ?? true,
+            'has_unlimited_stock' => $validated['has_unlimited_stock'] ?? false,
+            'has_max_cart' => $validated['has_max_cart'] ?? false,
+            'min_cart' => $validated['min_cart'] ?? null,
+            'max_cart' => $validated['max_cart'] ?? null,
+            'has_stock_alert' => $validated['has_stock_alert'] ?? false,
+            'min_stock_alert' => $validated['min_stock_alert'] ?? null,
+            'max_stock_alert' => $validated['max_stock_alert'] ?? null,
             'image_path' => $imagePath,
         ]);
 
-        $product->attachTaxonomies($data['category_id']);
+        if (!empty($validated['category_id'])) {
+            $product->attachTaxonomies($validated['category_id']);
+        }
 
-        return redirect()->back()->with('success', 'Product created');
+        return back()->with('flash', [
+            'message' => 'Product created successfully',
+            'type' => 'success',
+        ]);
     }
 
-    public function update(Request $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'price' => ['required', 'numeric', 'min:0'],
-            'category_id' => ['nullable', 'string'],
-            'image' => ['nullable', 'image', 'mimes:jpeg,jpg,png', 'max:2048'],
-        ]);
+        $validated = $request->validated();
 
         if ($request->hasFile('image')) {
-            // delete old if exists
             if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
                 Storage::disk('public')->delete($product->image_path);
             }
@@ -112,39 +95,67 @@ class ProductController extends Controller
         }
 
         $product->fill([
-            'name' => $data['name'],
-            'description' => $data['description'] ?? null,
-            'price' => $data['price'],
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'sku' => $validated['sku'] ?? null,
+            'barcode' => $validated['barcode'] ?? null,
+            'price' => $validated['price'],
+            'discount' => $validated['discount'] ?? 0,
+            'discount_to' => $validated['discount_to'] ?? null,
+            'vat' => $validated['vat'] ?? 0,
+            'has_vat' => $validated['has_vat'] ?? true,
+            'stock' => $validated['stock'] ?? 0,
+            'track_inventory' => $validated['track_inventory'] ?? false,
+            'is_activated' => $validated['is_activated'] ?? true,
+            'has_unlimited_stock' => $validated['has_unlimited_stock'] ?? false,
+            'has_max_cart' => $validated['has_max_cart'] ?? false,
+            'min_cart' => $validated['min_cart'] ?? null,
+            'max_cart' => $validated['max_cart'] ?? null,
+            'has_stock_alert' => $validated['has_stock_alert'] ?? false,
+            'min_stock_alert' => $validated['min_stock_alert'] ?? null,
+            'max_stock_alert' => $validated['max_stock_alert'] ?? null,
         ])->save();
 
-        $product->attachTaxonomies($data['category_id']);
+        if (!empty($validated['category_id'])) {
+            $product->syncTaxonomies($validated['category_id']);
+        }
 
-        return redirect()->back()->with('success', 'Product updated');
+        return back()->with('flash', [
+            'message' => 'Product updated successfully',
+            'type' => 'success',
+        ]);
     }
 
-    public function destroy(Product $product)
+    public function destroy(Product $product): RedirectResponse
     {
         if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
             Storage::disk('public')->delete($product->image_path);
         }
+
         $product->delete();
 
-        return redirect()->back()->with('success', 'Product deleted');
+        return back()->with('flash', [
+            'message' => 'Product deleted successfully',
+            'type' => 'success',
+        ]);
     }
 
-    public function addToCart(Request $request)
+    /**
+     * Generate SKU and barcode for a new product
+     */
+    public function generateCodes(Request $request): JsonResponse
     {
-        $product = Product::findOrFail($request->input('id'));
+        $categoryId = $request->input('category_id');
+        $categoryName = null;
 
-        Cart::query()->firstOrCreateWithStoreItems(
-            item: $product,
-            quantity: 1,
-            userId: auth()->user()->id
-        );
+        if ($categoryId) {
+            $category = Taxonomy::find($categoryId);
+            $categoryName = $category?->name;
+        }
 
-        return redirect()->back()->with('flash', [
-            'message' => 'Item added to cart!',
-            'type' => 'success'
+        return response()->json([
+            'sku' => Product::generateSku($categoryName),
+            'barcode' => Product::generateBarcode(),
         ]);
     }
 }

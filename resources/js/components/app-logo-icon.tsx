@@ -1,5 +1,9 @@
-import SunbitesLogo from '../../../public/images/logo/sunbites.png'; // adjust path based on your setup
+import SunbitesLogo from '../../../public/images/logo/sunbites.png';
 
-export default function AppLogoIcon() {
-    return <img src={SunbitesLogo} alt="Sunbites Logo" />;
+interface AppLogoIconProps {
+    className?: string;
+}
+
+export default function AppLogoIcon({ className }: AppLogoIconProps) {
+    return <img src={SunbitesLogo} alt="Sunbites Logo" className={className} />;
 }

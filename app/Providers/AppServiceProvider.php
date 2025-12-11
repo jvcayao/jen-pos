@@ -2,26 +2,33 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        if(config('app.env') === 'production') {
-            URL::forceScheme('https');
-        }
+        //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        //
+        $this->configureModels();
+        $this->configureUrls();
+    }
+
+    private function configureModels(): void
+    {
+        Model::shouldBeStrict(!app()->isProduction());
+        Model::unguard(false);
+    }
+
+    private function configureUrls(): void
+    {
+        if (app()->isProduction()) {
+            URL::forceScheme('https');
+        }
     }
 }

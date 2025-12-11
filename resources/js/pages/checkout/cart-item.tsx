@@ -1,16 +1,6 @@
 import { Button } from '@/components/ui/button';
+import type { CartItemProps } from '@/types/checkout.d';
 import { ImageIcon, Minus, Plus, Trash2 } from 'lucide-react';
-
-interface CartItemProps {
-    id: string;
-    name: string;
-    color: string;
-    price: number;
-    quantity: number;
-    image: string;
-    onUpdateQuantity: (id: string, quantity: number) => void;
-    onRemove: (id: string) => void;
-}
 
 export const CartItem = ({
     id,
@@ -36,7 +26,7 @@ export const CartItem = ({
                     />
                 ) : (
                     <div>
-                        <ImageIcon className="h-3 w-3" /> No image
+                        <ImageIcon className="h-3 w-3" />
                     </div>
                 )}
             </div>

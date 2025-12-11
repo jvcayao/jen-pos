@@ -8,14 +8,10 @@ import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { disable, enable, show } from '@/routes/two-factor';
 import { type BreadcrumbItem } from '@/types';
+import type { TwoFactorProps } from '@/types/settings.d';
 import { Form, Head } from '@inertiajs/react';
 import { ShieldBan, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
-
-interface TwoFactorProps {
-    requiresConfirmation?: boolean;
-    twoFactorEnabled?: boolean;
-}
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
