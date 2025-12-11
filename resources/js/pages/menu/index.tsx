@@ -279,6 +279,8 @@ export default function MenuIndex() {
     const [scannerOpen, setScannerOpen] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
+    console.log(initialCartCount);
+
     useEffect(() => {
         setCartCount(initialCartCount);
     }, [initialCartCount]);

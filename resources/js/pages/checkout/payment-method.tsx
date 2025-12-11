@@ -49,12 +49,9 @@ export const PaymentMethods = ({
     const [discountError, setDiscountError] = useState('');
     const [notes, setNotes] = useState('');
 
-    // Calculate totals with VAT
-    const taxRate = 0.12;
+    // subtotal is already VAT-inclusive, just apply discount
     const discountAmount = discountApplied?.discount || 0;
-    const taxableAmount = subtotal - discountAmount;
-    const vat = taxableAmount * taxRate;
-    const total = taxableAmount + vat;
+    const total = subtotal - discountAmount;
 
     const handleApplyDiscount = async () => {
         if (!discountCode.trim()) return;
@@ -119,9 +116,8 @@ export const PaymentMethods = ({
             payload.amount_2 = parseFloat(amount2) || 0;
         }
 
-        router.post('/orders', payload, {
-            onSuccess: () => setLoading(false),
-            onError: () => setLoading(false),
+        router.post('/orders', payload as Parameters<typeof router.post>[1], {
+            onFinish: () => setLoading(false),
         });
     };
 

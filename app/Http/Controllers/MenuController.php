@@ -10,7 +10,6 @@ use Binafy\LaravelCart\Models\Cart;
 use App\Http\Resources\CartResource;
 use App\Http\Resources\ProductResource;
 use App\Models\Taxonomy as TaxonomyModel;
-use Aliziodev\LaravelTaxonomy\Facades\Taxonomy;
 use Aliziodev\LaravelTaxonomy\Models\Taxonomy as AliziodevTaxonomyModel;
 
 class MenuController extends Controller
@@ -50,13 +49,15 @@ class MenuController extends Controller
                 ]);
         }
 
-        return Taxonomy::findBySlug($taxonomy->slug)
-            ->children
+        return AliziodevTaxonomyModel::with('children')
+            ->where('slug', $taxonomy->slug)
+            ->first()
+            ?->children
             ->map(fn ($subCategory) => [
                 'id' => $subCategory->id,
                 'name' => $subCategory->name,
                 'slug' => $subCategory->slug,
-            ]);
+            ]) ?? collect();
     }
 
     private function getCartData(): array
