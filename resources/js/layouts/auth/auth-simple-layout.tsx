@@ -17,7 +17,7 @@ export default function AuthSimpleLayout({
             <div className="w-full max-w-sm">
                 <div className="flex flex-col gap-8">
                     <div className="flex flex-col items-center gap-4">
-                        <AppLoginLogoIcon className="h-32 w-32" />
+                        <AppLoginLogoIcon className="h-auto w-full max-w-xs object-contain" />
                         {title && (
                             <h1 className="text-xl font-medium">{title}</h1>
                         )}

@@ -5,12 +5,16 @@ export interface CartItemData {
     qty: number;
     color?: string;
     image?: string;
+    has_vat?: boolean;
 }
 
 export interface Cart {
     items: CartItemData[];
+    subtotal: number;
+    vat_amount: number;
     total: number;
     count: number;
+    tax_rate: number;
 }
 
 export interface CheckoutPageProps {
@@ -30,10 +34,11 @@ export interface CartItemProps {
 }
 
 export interface OrderSummaryProps {
-    subtotal: number;
-    discount: number;
-    delivery: number;
-    tax: number;
+    total: number; // Total amount (VAT-inclusive)
+    vatableSales: number; // Vatable Sales (Net of VAT)
+    vatAmount: number; // VAT Amount
+    discount: number; // Discount amount
+    taxRate: number; // Tax rate (e.g., 0.12)
 }
 
 export interface CouponSectionProps {

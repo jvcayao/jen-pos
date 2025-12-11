@@ -1,0 +1,43 @@
+{
+    "name": "JEN POS",
+    "short_name": "JEN POS",
+    "description": "Point of Sale System",
+    "start_url": "/menu",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#000000",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/images/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/images/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": ["business", "productivity"],
+    "screenshots": [],
+    "shortcuts": [
+        {
+            "name": "Menu",
+            "url": "/menu",
+            "description": "Open the product menu"
+        },
+        {
+            "name": "Dashboard",
+            "url": "/dashboard",
+            "description": "View sales dashboard"
+        },
+        {
+            "name": "Orders",
+            "url": "/orders",
+            "description": "View order history"
+        }
+    ]
+}
