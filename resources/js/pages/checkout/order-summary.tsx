@@ -57,7 +57,7 @@ export const OrderSummary = ({
 
                 {/* Amount Due */}
                 <div className="flex items-center justify-between">
-                    <span className="text-lg font-semibold">Amount Due</span>
+                    <span className="text-lg font-semibold">Amount To Pay</span>
                     <span className="text-xl font-bold">
                         ₱{finalTotal.toFixed(2)}
                     </span>

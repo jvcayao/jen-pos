@@ -57,6 +57,8 @@ class Product extends Model implements Cartable
         'max_stock_alert' => 'integer',
     ];
 
+    protected $appends = ['image_url'];
+
     public function isInStock(int $quantity = 1): bool
     {
         if (!$this->track_inventory) {

@@ -33,7 +33,7 @@ RUN npm run build
 RUN chown -R www-data:www-data /var/www/html
 
 
-COPY .env.local .env
+COPY .env.example .env
 RUN php artisan key:generate
 RUN php artisan migrate:fresh --force
 RUN php artisan db:seed --force
