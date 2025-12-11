@@ -871,10 +871,10 @@ function ProductCard({ product, categories = [] }: ProductCardProps) {
     const hasDiscount = product.discount && product.discount > 0;
     const hasVat = product.has_vat !== false;
     const basePrice = Number(product.price) || 0;
-    const discountedPrice = hasDiscount
+    // VAT-inclusive pricing: the price IS the selling price
+    const sellingPrice = hasDiscount
         ? basePrice * (1 - (product.discount ?? 0) / 100)
         : basePrice;
-    const { priceWithVat } = calculateVat(discountedPrice, hasVat);
 
     // Proper boolean check for is_activated
     const isActive =
@@ -932,12 +932,12 @@ function ProductCard({ product, categories = [] }: ProductCardProps) {
                                         ₱{basePrice.toFixed(2)}
                                     </div>
                                     <div className="rounded bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
-                                        ₱{priceWithVat.toFixed(2)}
+                                        ₱{sellingPrice.toFixed(2)}
                                     </div>
                                 </>
                             ) : (
                                 <div className="rounded bg-muted px-2 py-0.5 text-xs font-semibold">
-                                    ₱{priceWithVat.toFixed(2)}
+                                    ₱{sellingPrice.toFixed(2)}
                                 </div>
                             )}
                             <div className="text-xs text-muted-foreground">
