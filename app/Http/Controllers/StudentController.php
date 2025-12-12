@@ -5,10 +5,14 @@ namespace App\Http\Controllers;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Models\Student;
+use BaconQrCode\Writer;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 
 class StudentController extends Controller
 {
@@ -37,6 +41,7 @@ class StudentController extends Controller
                 'wallet_type' => $student->wallet_type,
                 'wallet_balance' => $student->assigned_wallet_balance,
                 'has_wallet' => $student->hasAssignedWallet(),
+                'qr_code_url' => $student->qr_code_url,
                 'created_at' => $student->created_at->format('M d, Y'),
             ]);
 
@@ -277,6 +282,7 @@ class StudentController extends Controller
                 'wallet_type' => $student->wallet_type,
                 'wallet_balance' => $student->assigned_wallet_balance,
                 'has_wallet' => $student->hasAssignedWallet(),
+                'qr_code_url' => $student->qr_code_url,
             ]);
 
         return response()->json(['students' => $students]);
@@ -317,7 +323,44 @@ class StudentController extends Controller
                 'wallet_type' => $student->wallet_type,
                 'wallet_balance' => $student->assigned_wallet_balance,
                 'has_wallet' => $student->hasAssignedWallet(),
+                'qr_code_url' => $student->qr_code_url,
             ],
         ]);
+    }
+
+    public function getByQrToken(string $token): JsonResponse
+    {
+        $student = Student::where('qr_token', $token)->active()->first();
+
+        if (!$student) {
+            return response()->json(['error' => 'Student not found or inactive'], 404);
+        }
+
+        return response()->json([
+            'student' => [
+                'id' => $student->id,
+                'student_id' => $student->student_id,
+                'full_name' => $student->full_name,
+                'grade_level' => $student->grade_level,
+                'section' => $student->section,
+                'wallet_type' => $student->wallet_type,
+                'wallet_balance' => $student->assigned_wallet_balance,
+                'has_wallet' => $student->hasAssignedWallet(),
+                'qr_code_url' => $student->qr_code_url,
+            ],
+        ]);
+    }
+
+    public function qrCode(Student $student)
+    {
+        $renderer = new ImageRenderer(
+            new RendererStyle(300),
+            new SvgImageBackEnd
+        );
+
+        $writer = new Writer($renderer);
+        $svg = $writer->writeString($student->getQrPayload());
+
+        return response($svg)->header('Content-Type', 'image/svg+xml');
     }
 }

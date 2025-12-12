@@ -3,21 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { PaymentMethod } from '@/types/checkout.d';
+import type { CheckoutStudent, PaymentMethod } from '@/types/checkout.d';
 import { router } from '@inertiajs/react';
-import { Keyboard, Search, Split, Tag, User, Wallet, X } from 'lucide-react';
+import { Keyboard, Split, Tag, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-
-interface StudentSearchResult {
-    id: number;
-    student_id: string;
-    full_name: string;
-    grade_level: string | null;
-    section: string | null;
-    wallet_type: string | null;
-    wallet_balance: number;
-    has_wallet: boolean;
-}
 
 const paymentMethods: PaymentMethod[] = [
     {
@@ -44,12 +33,14 @@ interface PaymentMethodsProps {
     disabled?: boolean;
     subtotal?: number;
     onDiscountApplied?: (discount: number, code: string) => void;
+    selectedStudent: CheckoutStudent | null;
 }
 
 export const PaymentMethods = ({
     disabled = false,
     subtotal = 0,
     onDiscountApplied,
+    selectedStudent,
 }: PaymentMethodsProps) => {
     const [selectedPayment, setSelectedPayment] = useState('cash');
     const [selectedPayment2, setSelectedPayment2] = useState('');
@@ -66,54 +57,9 @@ export const PaymentMethods = ({
     const [discountError, setDiscountError] = useState('');
     const [notes, setNotes] = useState('');
 
-    // Student wallet state
-    const [studentSearch, setStudentSearch] = useState('');
-    const [studentSearchResults, setStudentSearchResults] = useState<
-        StudentSearchResult[]
-    >([]);
-    const [selectedStudent, setSelectedStudent] =
-        useState<StudentSearchResult | null>(null);
-    const [studentSearchLoading, setStudentSearchLoading] = useState(false);
-    const [showStudentDropdown, setShowStudentDropdown] = useState(false);
-
     // subtotal is already VAT-inclusive, just apply discount
     const discountAmount = discountApplied?.discount || 0;
     const total = subtotal - discountAmount;
-
-    // Search students when typing
-    useEffect(() => {
-        if (studentSearch.length < 2) {
-            setStudentSearchResults([]);
-            return;
-        }
-
-        const searchStudents = async () => {
-            setStudentSearchLoading(true);
-            try {
-                const response = await fetch(
-                    `/students/search?q=${encodeURIComponent(studentSearch)}`,
-                );
-                const data = await response.json();
-                setStudentSearchResults(data.students);
-                setShowStudentDropdown(true);
-            } catch (error) {
-                console.error('Failed to search students:', error);
-            }
-            setStudentSearchLoading(false);
-        };
-
-        const debounce = setTimeout(searchStudents, 300);
-        return () => clearTimeout(debounce);
-    }, [studentSearch]);
-
-    // Clear student when payment method changes away from wallet
-    useEffect(() => {
-        if (selectedPayment !== 'wallet') {
-            setSelectedStudent(null);
-            setStudentSearch('');
-            setStudentSearchResults([]);
-        }
-    }, [selectedPayment]);
 
     // Helper to check if wallet payment is selected
     const isWalletPayment = selectedPayment === 'wallet';
@@ -128,26 +74,6 @@ export const PaymentMethods = ({
     const hasWallet = () => {
         if (!selectedStudent) return false;
         return selectedStudent.has_wallet;
-    };
-
-    // Get the student's wallet type name for display
-    const getWalletTypeName = () => {
-        if (!selectedStudent?.wallet_type) return '';
-        return selectedStudent.wallet_type === 'subscribe'
-            ? 'Subscribe'
-            : 'Non-Subscribe';
-    };
-
-    const handleSelectStudent = (student: StudentSearchResult) => {
-        setSelectedStudent(student);
-        setStudentSearch('');
-        setShowStudentDropdown(false);
-        setStudentSearchResults([]);
-    };
-
-    const handleClearStudent = () => {
-        setSelectedStudent(null);
-        setStudentSearch('');
     };
 
     const handleApplyDiscount = async () => {
@@ -226,8 +152,11 @@ export const PaymentMethods = ({
             payload.discount_code = discountCode;
         }
 
-        if (isWalletPayment && selectedStudent) {
+        if (selectedStudent) {
             payload.student_id = selectedStudent.id;
+        }
+
+        if (isWalletPayment && selectedStudent) {
             payload.wallet_type = selectedStudent.wallet_type;
         }
 
@@ -440,186 +369,6 @@ export const PaymentMethods = ({
                             </CardContent>
                         </Card>
                     ))}
-
-                    {/* Student Selection for Wallet Payment */}
-                    {isWalletPayment && (
-                        <div className="mt-4 space-y-3 rounded-lg border border-dashed p-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <User className="h-4 w-4" />
-                                    <span>
-                                        Select Student for Wallet Payment
-                                    </span>
-                                </div>
-                            </div>
-
-                            {selectedStudent ? (
-                                <div className="rounded-lg bg-primary/10 p-3">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <div className="font-medium">
-                                                {selectedStudent.full_name}
-                                            </div>
-                                            <div className="text-sm text-muted-foreground">
-                                                {selectedStudent.student_id}
-                                                {selectedStudent.grade_level &&
-                                                    ` | ${selectedStudent.grade_level}`}
-                                                {selectedStudent.section &&
-                                                    ` - ${selectedStudent.section}`}
-                                            </div>
-                                            {/* Show wallet info */}
-                                            {selectedStudent.has_wallet ? (
-                                                <div className="mt-2 rounded bg-primary/20 p-2 text-sm">
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {getWalletTypeName()}{' '}
-                                                        Wallet Balance
-                                                    </div>
-                                                    <div
-                                                        className={`font-semibold ${
-                                                            selectedStudent.wallet_balance >=
-                                                            total
-                                                                ? 'text-green-600'
-                                                                : 'text-red-600'
-                                                        }`}
-                                                    >
-                                                        {formatCurrency(
-                                                            selectedStudent.wallet_balance,
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="mt-2 rounded bg-orange-100 p-2 text-sm text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
-                                                    No wallet assigned
-                                                </div>
-                                            )}
-                                        </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={handleClearStudent}
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                    {walletNotExists && (
-                                        <p className="mt-2 text-sm text-red-600">
-                                            Student does not have a wallet
-                                            assigned. They can only pay with
-                                            Cash or G-Cash.
-                                        </p>
-                                    )}
-                                    {walletInsufficientBalance && (
-                                        <p className="mt-2 text-sm text-red-600">
-                                            Insufficient balance! Need{' '}
-                                            {formatCurrency(
-                                                total -
-                                                    getSelectedWalletBalance(),
-                                            )}{' '}
-                                            more.
-                                        </p>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="relative">
-                                    <div className="relative">
-                                        <Search className="pointer-events-none absolute top-2.5 left-2 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            id="student-search-input"
-                                            placeholder="Search or scan student barcode..."
-                                            value={studentSearch}
-                                            onChange={(e) =>
-                                                setStudentSearch(e.target.value)
-                                            }
-                                            onFocus={() =>
-                                                studentSearchResults.length >
-                                                    0 &&
-                                                setShowStudentDropdown(true)
-                                            }
-                                            onKeyDown={(e) => {
-                                                if (
-                                                    e.key === 'Enter' &&
-                                                    studentSearch.length >= 2
-                                                ) {
-                                                    // If only one result, select it
-                                                    if (
-                                                        studentSearchResults.length ===
-                                                        1
-                                                    ) {
-                                                        handleSelectStudent(
-                                                            studentSearchResults[0],
-                                                        );
-                                                    }
-                                                }
-                                            }}
-                                            className="pl-8"
-                                        />
-                                    </div>
-                                    {showStudentDropdown &&
-                                        studentSearchResults.length > 0 && (
-                                            <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border bg-background shadow-lg">
-                                                {studentSearchResults.map(
-                                                    (student) => (
-                                                        <div
-                                                            key={student.id}
-                                                            className="cursor-pointer p-3 hover:bg-muted"
-                                                            onClick={() =>
-                                                                handleSelectStudent(
-                                                                    student,
-                                                                )
-                                                            }
-                                                        >
-                                                            <div className="font-medium">
-                                                                {
-                                                                    student.full_name
-                                                                }
-                                                            </div>
-                                                            <div className="flex items-center justify-between text-sm text-muted-foreground">
-                                                                <span>
-                                                                    {
-                                                                        student.student_id
-                                                                    }
-                                                                </span>
-                                                                {student.has_wallet ? (
-                                                                    <span
-                                                                        className={
-                                                                            student.wallet_balance >=
-                                                                            total
-                                                                                ? 'text-green-600'
-                                                                                : 'text-red-600'
-                                                                        }
-                                                                    >
-                                                                        {formatCurrency(
-                                                                            student.wallet_balance,
-                                                                        )}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="text-orange-600">
-                                                                        No
-                                                                        wallet
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    ),
-                                                )}
-                                            </div>
-                                        )}
-                                    {studentSearchLoading && (
-                                        <div className="absolute z-10 mt-1 w-full rounded-lg border bg-background p-3 text-center text-sm text-muted-foreground shadow-lg">
-                                            Searching...
-                                        </div>
-                                    )}
-                                    {studentSearch.length >= 2 &&
-                                        !studentSearchLoading &&
-                                        studentSearchResults.length === 0 && (
-                                            <div className="absolute z-10 mt-1 w-full rounded-lg border bg-background p-3 text-center text-sm text-muted-foreground shadow-lg">
-                                                No students found
-                                            </div>
-                                        )}
-                                </div>
-                            )}
-                        </div>
-                    )}
 
                     {splitPayment && (
                         <div className="mt-4 space-y-4 rounded-lg border border-dashed p-4">

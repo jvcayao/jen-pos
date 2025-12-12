@@ -22,6 +22,17 @@ export interface CheckoutPageProps {
     [key: string]: unknown;
 }
 
+export interface CheckoutStudent {
+    id: number;
+    student_id: string;
+    full_name: string;
+    grade_level: string | null;
+    section: string | null;
+    wallet_type: string | null;
+    wallet_balance: number;
+    has_wallet: boolean;
+}
+
 export interface CartItemProps {
     id: string;
     name: string;

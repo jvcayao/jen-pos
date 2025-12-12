@@ -112,30 +112,34 @@ class OrderController extends Controller
             ]);
         }
 
-        // Handle wallet payment - requires student with assigned wallet
+        // Optional student assignment (for tracking even with non-wallet payments)
         $student = null;
         $walletType = null;
         $wallet = null;
 
-        if ($paymentMethod === 'wallet') {
-            if (empty($validated['student_id'])) {
-                return back()->with('flash', [
-                    'message' => 'Student is required for wallet payment!',
-                    'type' => 'error',
-                ]);
-            }
-
+        if (!empty($validated['student_id'])) {
             $student = Student::find($validated['student_id']);
+
             if (!$student) {
                 return back()->with('flash', [
-                    'message' => 'Student not found!',
+                    'message' => 'Selected student not found!',
                     'type' => 'error',
                 ]);
             }
 
             if (!$student->is_active) {
                 return back()->with('flash', [
-                    'message' => 'Student account is inactive!',
+                    'message' => 'Selected student account is inactive!',
+                    'type' => 'error',
+                ]);
+            }
+        }
+
+        // Handle wallet payment - requires student with assigned wallet
+        if ($paymentMethod === 'wallet') {
+            if (!$student) {
+                return back()->with('flash', [
+                    'message' => 'Student is required for wallet payment!',
                     'type' => 'error',
                 ]);
             }

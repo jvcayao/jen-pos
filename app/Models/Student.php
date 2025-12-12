@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Str;
 use Bavix\Wallet\Interfaces\Wallet;
 use Bavix\Wallet\Traits\HasWallets;
 use Bavix\Wallet\Traits\HasWalletFloat;
@@ -32,6 +33,7 @@ class Student extends Model implements Wallet, WalletFloat
         'address',
         'is_active',
         'wallet_type',
+        'qr_token',
     ];
 
     protected $casts = [
@@ -43,7 +45,23 @@ class Student extends Model implements Wallet, WalletFloat
         'wallet_balance',
         'subscribe_wallet_balance',
         'non_subscribe_wallet_balance',
+        'qr_code_url',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Student $student) {
+            if (empty($student->qr_token)) {
+                $student->qr_token = (string) Str::uuid();
+            }
+        });
+
+        static::updating(function (Student $student) {
+            if (empty($student->qr_token)) {
+                $student->qr_token = (string) Str::uuid();
+            }
+        });
+    }
 
     public function getFullNameAttribute(): string
     {
@@ -253,5 +271,15 @@ class Student extends Model implements Wallet, WalletFloat
                 ->orWhere('last_name', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%");
         });
+    }
+
+    public function getQrPayload(): string
+    {
+        return 'student:'.$this->qr_token;
+    }
+
+    public function getQrCodeUrlAttribute(): string
+    {
+        return route('students.qr-code', $this);
     }
 }

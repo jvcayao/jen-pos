@@ -37,6 +37,7 @@ import {
     History,
     Pencil,
     Plus,
+    QrCode,
     Search,
     Trash2,
     User,
@@ -65,6 +66,7 @@ interface Student {
     wallet_type: string | null;
     wallet_balance: number;
     has_wallet: boolean;
+    qr_code_url: string;
     created_at: string;
 }
 
@@ -737,10 +739,120 @@ function WalletModal({
     );
 }
 
+function StudentQrModal({
+    student,
+    open,
+    onClose,
+}: {
+    student: Student;
+    open: boolean;
+    onClose: () => void;
+}) {
+    const [qrSvg, setQrSvg] = useState('');
+    const [qrLoading, setQrLoading] = useState(false);
+    const [qrError, setQrError] = useState('');
+
+    useEffect(() => {
+        if (!open) {
+            setQrSvg('');
+            setQrError('');
+            return;
+        }
+
+        const controller = new AbortController();
+
+        const loadQr = async () => {
+            try {
+                setQrLoading(true);
+                setQrError('');
+                const response = await fetch(student.qr_code_url, {
+                    headers: {
+                        Accept: 'image/svg+xml',
+                    },
+                    signal: controller.signal,
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch QR');
+                }
+
+                const svg = await response.text();
+                setQrSvg(svg);
+            } catch (error) {
+                if (!controller.signal.aborted) {
+                    console.error('Failed to load QR code', error);
+                    setQrError('Unable to load QR code. Please try again.');
+                    setQrSvg('');
+                }
+            } finally {
+                if (!controller.signal.aborted) {
+                    setQrLoading(false);
+                }
+            }
+        };
+
+        loadQr();
+
+        return () => controller.abort();
+    }, [open, student.id, student.qr_code_url]);
+
+    if (!open) return null;
+
+    const qrSrc = `${student.qr_code_url}?cache=${student.id}`;
+
+    return (
+        <Dialog open={open} onOpenChange={onClose}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <QrCode className="h-5 w-5" />
+                        {student.full_name}
+                    </DialogTitle>
+                    <DialogDescription>
+                        Student ID: {student.student_id}
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="flex flex-col items-center gap-4">
+                    <div className="flex min-h-[12rem] w-full items-center justify-center rounded-xl border bg-white p-4">
+                        {qrLoading ? (
+                            <p className="text-sm text-muted-foreground">
+                                Loading QR code…
+                            </p>
+                        ) : qrError ? (
+                            <p className="text-sm text-red-600">{qrError}</p>
+                        ) : qrSvg ? (
+                            <div
+                                className="h-48 w-48"
+                                dangerouslySetInnerHTML={{ __html: qrSvg }}
+                            />
+                        ) : null}
+                    </div>
+                    <p className="text-center text-sm text-muted-foreground">
+                        Scan this QR code during checkout to quickly select the
+                        student.
+                    </p>
+                    <div className="flex gap-2">
+                        <Button asChild variant="outline">
+                            <a href={qrSrc} target="_blank" rel="noreferrer">
+                                Open in new tab
+                            </a>
+                        </Button>
+                        <Button variant="secondary" onClick={onClose}>
+                            Close
+                        </Button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function StudentCard({ student }: { student: Student }) {
     const [editing, setEditing] = useState(false);
     const [walletOpen, setWalletOpen] = useState(false);
     const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+    const [qrOpen, setQrOpen] = useState(false);
     const form = useForm({});
 
     const doDelete = () => {
@@ -822,8 +934,16 @@ function StudentCard({ student }: { student: Student }) {
                         )}
                     </div>
 
-                    <div className="flex items-center justify-between gap-2 pt-2">
-                        <div className="flex gap-1">
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setQrOpen(true)}
+                            >
+                                <QrCode className="mr-1 h-4 w-4" />
+                                QR Code
+                            </Button>
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -869,6 +989,11 @@ function StudentCard({ student }: { student: Student }) {
                 student={student}
                 open={walletOpen}
                 onClose={() => setWalletOpen(false)}
+            />
+            <StudentQrModal
+                student={student}
+                open={qrOpen}
+                onClose={() => setQrOpen(false)}
             />
             <AlertDialog
                 open={confirmDeleteOpen}

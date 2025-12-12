@@ -11,8 +11,13 @@ import AppLayout from '@/layouts/app-layout';
 import { CartItem } from '@/pages/checkout/cart-item';
 import { OrderSummary } from '@/pages/checkout/order-summary';
 import { PaymentMethods } from '@/pages/checkout/payment-method';
+import { StudentSelector } from '@/pages/checkout/student-selector';
 import { type BreadcrumbItem } from '@/types';
-import type { CartItemData, CheckoutPageProps } from '@/types/checkout.d';
+import type {
+    CartItemData,
+    CheckoutPageProps,
+    CheckoutStudent,
+} from '@/types/checkout.d';
 import { Head, router, usePage } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
@@ -35,6 +40,8 @@ export default function Checkout() {
         cart.items.length === 0,
     );
     const [showCancelDialog, setShowCancelDialog] = useState(false);
+    const [selectedStudent, setSelectedStudent] =
+        useState<CheckoutStudent | null>(null);
 
     const discount = 0;
 
@@ -200,9 +207,15 @@ export default function Checkout() {
                                 discount={discount}
                                 taxRate={taxRate}
                             />
+                            <StudentSelector
+                                selectedStudent={selectedStudent}
+                                onSelect={setSelectedStudent}
+                                disabled={loading || cartItems.length === 0}
+                            />
                             <PaymentMethods
                                 disabled={loading || cartItems.length === 0}
                                 subtotal={cartTotal}
+                                selectedStudent={selectedStudent}
                             />
                         </div>
                     </div>
