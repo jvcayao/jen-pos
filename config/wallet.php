@@ -2,57 +2,57 @@
 
 declare(strict_types=1);
 
-use Bavix\Wallet\Internal\Assembler\AvailabilityDtoAssembler;
-use Bavix\Wallet\Internal\Assembler\BalanceUpdatedEventAssembler;
-use Bavix\Wallet\Internal\Assembler\ExtraDtoAssembler;
-use Bavix\Wallet\Internal\Assembler\OptionDtoAssembler;
-use Bavix\Wallet\Internal\Assembler\TransactionCreatedEventAssembler;
-use Bavix\Wallet\Internal\Assembler\TransactionDtoAssembler;
-use Bavix\Wallet\Internal\Assembler\TransactionQueryAssembler;
-use Bavix\Wallet\Internal\Assembler\TransferDtoAssembler;
-use Bavix\Wallet\Internal\Assembler\TransferLazyDtoAssembler;
-use Bavix\Wallet\Internal\Assembler\TransferQueryAssembler;
-use Bavix\Wallet\Internal\Events\BalanceUpdatedEvent;
-use Bavix\Wallet\Internal\Events\TransactionCreatedEvent;
-use Bavix\Wallet\Internal\Events\WalletCreatedEvent;
-use Bavix\Wallet\Internal\Repository\TransactionRepository;
-use Bavix\Wallet\Internal\Repository\TransferRepository;
-use Bavix\Wallet\Internal\Repository\WalletRepository;
-use Bavix\Wallet\Internal\Service\ClockService;
-use Bavix\Wallet\Internal\Service\ConnectionService;
-use Bavix\Wallet\Internal\Service\DatabaseService;
-use Bavix\Wallet\Internal\Service\DispatcherService;
-use Bavix\Wallet\Internal\Service\IdentifierFactoryService;
+use Bavix\Wallet\Models\Wallet;
+use Bavix\Wallet\Models\Transfer;
+use Bavix\Wallet\Models\Transaction;
+use Bavix\Wallet\Services\AtmService;
+use Bavix\Wallet\Services\TaxService;
+use Bavix\Wallet\Services\CastService;
+use Bavix\Wallet\Services\AtomicService;
+use Bavix\Wallet\Services\BasketService;
+use Bavix\Wallet\Services\WalletService;
+use Bavix\Wallet\Services\PrepareService;
+use Bavix\Wallet\Services\DiscountService;
+use Bavix\Wallet\Services\ExchangeService;
+use Bavix\Wallet\Services\PurchaseService;
+use Bavix\Wallet\Services\TransferService;
+use Bavix\Wallet\Services\AssistantService;
+use Bavix\Wallet\Services\FormatterService;
+use Bavix\Wallet\Services\RegulatorService;
+use Bavix\Wallet\Services\BookkeeperService;
+use Bavix\Wallet\Services\ConsistencyService;
+use Bavix\Wallet\Services\EagerLoaderService;
+use Bavix\Wallet\Services\TransactionService;
 use Bavix\Wallet\Internal\Service\JsonService;
 use Bavix\Wallet\Internal\Service\LockService;
 use Bavix\Wallet\Internal\Service\MathService;
+use Bavix\Wallet\Internal\Service\ClockService;
 use Bavix\Wallet\Internal\Service\StateService;
 use Bavix\Wallet\Internal\Service\StorageService;
+use Bavix\Wallet\Internal\Service\DatabaseService;
+use Bavix\Wallet\Internal\Events\WalletCreatedEvent;
+use Bavix\Wallet\Internal\Service\ConnectionService;
+use Bavix\Wallet\Internal\Service\DispatcherService;
 use Bavix\Wallet\Internal\Service\TranslatorService;
+use Bavix\Wallet\Internal\Events\BalanceUpdatedEvent;
 use Bavix\Wallet\Internal\Service\UuidFactoryService;
-use Bavix\Wallet\Internal\Transform\TransactionDtoTransformer;
+use Bavix\Wallet\Internal\Assembler\ExtraDtoAssembler;
+use Bavix\Wallet\Internal\Repository\WalletRepository;
+use Bavix\Wallet\Internal\Assembler\OptionDtoAssembler;
+use Bavix\Wallet\Internal\Repository\TransferRepository;
+use Bavix\Wallet\Internal\Assembler\TransferDtoAssembler;
+use Bavix\Wallet\Internal\Events\TransactionCreatedEvent;
+use Bavix\Wallet\Internal\Assembler\TransferQueryAssembler;
+use Bavix\Wallet\Internal\Repository\TransactionRepository;
+use Bavix\Wallet\Internal\Service\IdentifierFactoryService;
 use Bavix\Wallet\Internal\Transform\TransferDtoTransformer;
-use Bavix\Wallet\Models\Transaction;
-use Bavix\Wallet\Models\Transfer;
-use Bavix\Wallet\Models\Wallet;
-use Bavix\Wallet\Services\AssistantService;
-use Bavix\Wallet\Services\AtmService;
-use Bavix\Wallet\Services\AtomicService;
-use Bavix\Wallet\Services\BasketService;
-use Bavix\Wallet\Services\BookkeeperService;
-use Bavix\Wallet\Services\CastService;
-use Bavix\Wallet\Services\ConsistencyService;
-use Bavix\Wallet\Services\DiscountService;
-use Bavix\Wallet\Services\EagerLoaderService;
-use Bavix\Wallet\Services\ExchangeService;
-use Bavix\Wallet\Services\FormatterService;
-use Bavix\Wallet\Services\PrepareService;
-use Bavix\Wallet\Services\PurchaseService;
-use Bavix\Wallet\Services\RegulatorService;
-use Bavix\Wallet\Services\TaxService;
-use Bavix\Wallet\Services\TransactionService;
-use Bavix\Wallet\Services\TransferService;
-use Bavix\Wallet\Services\WalletService;
+use Bavix\Wallet\Internal\Assembler\TransactionDtoAssembler;
+use Bavix\Wallet\Internal\Assembler\AvailabilityDtoAssembler;
+use Bavix\Wallet\Internal\Assembler\TransferLazyDtoAssembler;
+use Bavix\Wallet\Internal\Assembler\TransactionQueryAssembler;
+use Bavix\Wallet\Internal\Transform\TransactionDtoTransformer;
+use Bavix\Wallet\Internal\Assembler\BalanceUpdatedEventAssembler;
+use Bavix\Wallet\Internal\Assembler\TransactionCreatedEventAssembler;
 
 return [
     /**
@@ -232,7 +232,7 @@ return [
      *
      * @var array<string, class-string>
      *
-     * @see \Bavix\Wallet\Services
+     * @see Bavix\Wallet\Services
      */
     'services' => [
         // Service for performing operations related to the assistant.
@@ -278,27 +278,27 @@ return [
      *
      * Each repository is responsible for fetching data from the database for a specific entity.
      *
-     * @see \Bavix\Wallet\Interfaces\Wallet
-     * @see \Bavix\Wallet\Interfaces\Transaction
-     * @see \Bavix\Wallet\Interfaces\Transfer
+     * @see Bavix\Wallet\Interfaces\Wallet
+     * @see Bavix\Wallet\Interfaces\Transaction
+     * @see Bavix\Wallet\Interfaces\Transfer
      */
     'repositories' => [
         /**
          * Repository for fetching transaction data.
          *
-         * @see \Bavix\Wallet\Interfaces\Transaction
+         * @see Bavix\Wallet\Interfaces\Transaction
          */
         'transaction' => TransactionRepository::class,
         /**
          * Repository for fetching transfer data.
          *
-         * @see \Bavix\Wallet\Interfaces\Transfer
+         * @see Bavix\Wallet\Interfaces\Transfer
          */
         'transfer' => TransferRepository::class,
         /**
          * Repository for fetching wallet data.
          *
-         * @see \Bavix\Wallet\Interfaces\Wallet
+         * @see Bavix\Wallet\Interfaces\Wallet
          */
         'wallet' => WalletRepository::class,
     ],

@@ -203,7 +203,7 @@ class OrderController extends Controller
                     DB::rollBack();
 
                     return back()->with('flash', [
-                        'message' => 'Insufficient wallet balance! Current balance: ₱' . number_format($student->balanceFloatNum, 2),
+                        'message' => 'Insufficient wallet balance! Current balance: ₱'.number_format($student->balanceFloatNum, 2),
                         'type' => 'error',
                     ]);
                 }

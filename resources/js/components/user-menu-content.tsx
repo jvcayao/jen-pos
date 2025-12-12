@@ -10,8 +10,8 @@ import { dashboard, logout } from '@/routes';
 import { index as categoriesIndex } from '@/routes/categories';
 import { index as ordersIndex } from '@/routes/orders';
 import { index as productsIndex } from '@/routes/products';
-import { index as studentsIndex } from '@/routes/students';
 import { edit as editProfile } from '@/routes/profile';
+import { index as studentsIndex } from '@/routes/students';
 import { type User } from '@/types';
 import { Link, router } from '@inertiajs/react';
 import {

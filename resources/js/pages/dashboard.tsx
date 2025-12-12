@@ -428,7 +428,9 @@ function OrdersTable({
                             <SelectItem value="all">All Methods</SelectItem>
                             <SelectItem value="cash">Cash</SelectItem>
                             <SelectItem value="gcash">G-Cash</SelectItem>
-                            <SelectItem value="wallet">Student Wallet</SelectItem>
+                            <SelectItem value="wallet">
+                                Student Wallet
+                            </SelectItem>
                             <SelectItem value="card">Card</SelectItem>
                         </SelectContent>
                     </Select>

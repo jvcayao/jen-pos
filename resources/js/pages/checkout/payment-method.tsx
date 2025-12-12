@@ -647,9 +647,7 @@ export const PaymentMethods = ({
                     !isWalletPaymentValid
                 }
             >
-                {loading
-                    ? 'Processing...'
-                    : `Pay ${formatCurrency(total)}`}
+                {loading ? 'Processing...' : `Pay ${formatCurrency(total)}`}
             </Button>
         </div>
     );

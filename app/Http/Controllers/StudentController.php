@@ -7,8 +7,8 @@ use Inertia\Response;
 use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\RedirectResponse;
 
 class StudentController extends Controller
 {
@@ -73,7 +73,7 @@ class StudentController extends Controller
     public function update(Request $request, Student $student): RedirectResponse
     {
         $validated = $request->validate([
-            'student_id' => 'required|string|unique:students,student_id,' . $student->id,
+            'student_id' => 'required|string|unique:students,student_id,'.$student->id,
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
@@ -133,7 +133,7 @@ class StudentController extends Controller
             $student->refresh();
 
             return back()->with('flash', [
-                'message' => 'Deposit successful! New balance: ₱' . number_format($student->balanceFloatNum, 2),
+                'message' => 'Deposit successful! New balance: ₱'.number_format($student->balanceFloatNum, 2),
                 'type' => 'success',
             ]);
         } catch (\Exception $e) {
@@ -174,14 +174,14 @@ class StudentController extends Controller
             $student->refresh();
 
             return back()->with('flash', [
-                'message' => 'Withdrawal successful! New balance: ₱' . number_format($student->balanceFloatNum, 2),
+                'message' => 'Withdrawal successful! New balance: ₱'.number_format($student->balanceFloatNum, 2),
                 'type' => 'success',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
 
             return back()->with('flash', [
-                'message' => 'Failed to process withdrawal: ' . $e->getMessage(),
+                'message' => 'Failed to process withdrawal: '.$e->getMessage(),
                 'type' => 'error',
             ]);
         }

@@ -40,7 +40,6 @@ import {
     Trash2,
     User,
     Wallet,
-    X,
 } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 
@@ -477,7 +476,9 @@ function WalletModal({
 
     const fetchTransactions = async () => {
         try {
-            const response = await fetch(`/students/${student.id}/transactions`);
+            const response = await fetch(
+                `/students/${student.id}/transactions`,
+            );
             const data = await response.json();
             setTransactions(data.transactions);
             setBalance(data.balance);
@@ -548,7 +549,9 @@ function WalletModal({
 
                 <div className="flex gap-2">
                     <Button
-                        variant={activeTab === 'deposit' ? 'default' : 'outline'}
+                        variant={
+                            activeTab === 'deposit' ? 'default' : 'outline'
+                        }
                         size="sm"
                         onClick={() => setActiveTab('deposit')}
                         className="flex-1"
@@ -568,7 +571,9 @@ function WalletModal({
                         Withdraw
                     </Button>
                     <Button
-                        variant={activeTab === 'history' ? 'default' : 'outline'}
+                        variant={
+                            activeTab === 'history' ? 'default' : 'outline'
+                        }
                         size="sm"
                         onClick={() => setActiveTab('history')}
                         className="flex-1"
@@ -641,7 +646,8 @@ function WalletModal({
                                             </span>
                                         </div>
                                         <div className="text-xs text-muted-foreground">
-                                            {t.meta?.description || t.created_at}
+                                            {t.meta?.description ||
+                                                t.created_at}
                                         </div>
                                     </div>
                                     <div
@@ -790,10 +796,7 @@ function StudentCard({ student }: { student: Student }) {
     );
 }
 
-export default function StudentsIndex({
-    students,
-    filters,
-}: StudentPageProps) {
+export default function StudentsIndex({ students, filters }: StudentPageProps) {
     const [search, setSearch] = useState(filters?.search ?? '');
     const [status, setStatus] = useState(filters?.status ?? '');
     const [openCreate, setOpenCreate] = useState(false);
