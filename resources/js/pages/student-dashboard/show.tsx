@@ -106,8 +106,7 @@ export default function StudentDashboardShow({
                         </h1>
                         <p className="text-sm text-muted-foreground">
                             {student.student_id}
-                            {student.grade_level &&
-                                ` | ${student.grade_level}`}
+                            {student.grade_level && ` | ${student.grade_level}`}
                             {student.section && ` - ${student.section}`}
                         </p>
                     </div>
@@ -191,7 +190,8 @@ export default function StudentDashboardShow({
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-medium">
-                                                        Order #{order.uuid.slice(0, 8)}
+                                                        Order #
+                                                        {order.uuid.slice(0, 8)}
                                                     </span>
                                                     <Badge
                                                         variant={

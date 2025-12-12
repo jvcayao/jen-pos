@@ -16,6 +16,7 @@ class Student extends Model implements Wallet, WalletFloat
 
     // Wallet slugs
     public const WALLET_SUBSCRIBE = 'subscribe';
+
     public const WALLET_NON_SUBSCRIBE = 'non-subscribe';
 
     protected $fillable = [
@@ -73,6 +74,7 @@ class Student extends Model implements Wallet, WalletFloat
     {
         try {
             $wallet = $this->getWallet(self::WALLET_SUBSCRIBE);
+
             return $wallet ? (float) $wallet->balanceFloatNum : 0.0;
         } catch (\Exception $e) {
             return 0.0;
@@ -86,6 +88,7 @@ class Student extends Model implements Wallet, WalletFloat
     {
         try {
             $wallet = $this->getWallet(self::WALLET_NON_SUBSCRIBE);
+
             return $wallet ? (float) $wallet->balanceFloatNum : 0.0;
         } catch (\Exception $e) {
             return 0.0;
@@ -136,6 +139,7 @@ class Student extends Model implements Wallet, WalletFloat
                 'description' => 'Subscription-based wallet for regular meals',
             ]);
         }
+
         return $this->getSubscribeWallet();
     }
 
@@ -151,6 +155,7 @@ class Student extends Model implements Wallet, WalletFloat
                 'description' => 'Regular wallet for non-subscription purchases',
             ]);
         }
+
         return $this->getNonSubscribeWallet();
     }
 

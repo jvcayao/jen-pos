@@ -74,7 +74,7 @@ export default function StudentDashboardIndex() {
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
                             <div className="relative">
-                                <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                <Search className="pointer-events-none absolute top-3 left-3 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     type="text"
                                     value={searchQuery}

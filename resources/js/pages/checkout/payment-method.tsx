@@ -309,9 +309,7 @@ export const PaymentMethods = ({
         getSelectedWalletBalance() < total;
 
     const walletNotExists =
-        isWalletPayment &&
-        selectedStudent !== null &&
-        !hasWallet();
+        isWalletPayment && selectedStudent !== null && !hasWallet();
 
     return (
         <div className="space-y-6">
@@ -419,9 +417,9 @@ export const PaymentMethods = ({
                                             )}
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            {method.id.startsWith('wallet-') && (
-                                                <Wallet className="h-4 w-4" />
-                                            )}
+                                            {method.id.startsWith(
+                                                'wallet-',
+                                            ) && <Wallet className="h-4 w-4" />}
                                             <span className="font-medium">
                                                 {method.name}
                                             </span>
@@ -449,7 +447,9 @@ export const PaymentMethods = ({
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <User className="h-4 w-4" />
-                                    <span>Select Student for Wallet Payment</span>
+                                    <span>
+                                        Select Student for Wallet Payment
+                                    </span>
                                 </div>
                             </div>
 
@@ -471,16 +471,20 @@ export const PaymentMethods = ({
                                             {selectedStudent.has_wallet ? (
                                                 <div className="mt-2 rounded bg-primary/20 p-2 text-sm">
                                                     <div className="text-xs text-muted-foreground">
-                                                        {getWalletTypeName()} Wallet Balance
+                                                        {getWalletTypeName()}{' '}
+                                                        Wallet Balance
                                                     </div>
                                                     <div
                                                         className={`font-semibold ${
-                                                            selectedStudent.wallet_balance >= total
+                                                            selectedStudent.wallet_balance >=
+                                                            total
                                                                 ? 'text-green-600'
                                                                 : 'text-red-600'
                                                         }`}
                                                     >
-                                                        {formatCurrency(selectedStudent.wallet_balance)}
+                                                        {formatCurrency(
+                                                            selectedStudent.wallet_balance,
+                                                        )}
                                                     </div>
                                                 </div>
                                             ) : (
@@ -499,14 +503,17 @@ export const PaymentMethods = ({
                                     </div>
                                     {walletNotExists && (
                                         <p className="mt-2 text-sm text-red-600">
-                                            Student does not have a wallet assigned. They can only pay with Cash or G-Cash.
+                                            Student does not have a wallet
+                                            assigned. They can only pay with
+                                            Cash or G-Cash.
                                         </p>
                                     )}
                                     {walletInsufficientBalance && (
                                         <p className="mt-2 text-sm text-red-600">
                                             Insufficient balance! Need{' '}
                                             {formatCurrency(
-                                                total - getSelectedWalletBalance(),
+                                                total -
+                                                    getSelectedWalletBalance(),
                                             )}{' '}
                                             more.
                                         </p>
@@ -529,10 +536,18 @@ export const PaymentMethods = ({
                                                 setShowStudentDropdown(true)
                                             }
                                             onKeyDown={(e) => {
-                                                if (e.key === 'Enter' && studentSearch.length >= 2) {
+                                                if (
+                                                    e.key === 'Enter' &&
+                                                    studentSearch.length >= 2
+                                                ) {
                                                     // If only one result, select it
-                                                    if (studentSearchResults.length === 1) {
-                                                        handleSelectStudent(studentSearchResults[0]);
+                                                    if (
+                                                        studentSearchResults.length ===
+                                                        1
+                                                    ) {
+                                                        handleSelectStudent(
+                                                            studentSearchResults[0],
+                                                        );
                                                     }
                                                 }
                                             }}
@@ -554,30 +569,38 @@ export const PaymentMethods = ({
                                                             }
                                                         >
                                                             <div className="font-medium">
-                                                                {student.full_name}
+                                                                {
+                                                                    student.full_name
+                                                                }
                                                             </div>
                                                             <div className="flex items-center justify-between text-sm text-muted-foreground">
                                                                 <span>
-                                                                    {student.student_id}
+                                                                    {
+                                                                        student.student_id
+                                                                    }
                                                                 </span>
                                                                 {student.has_wallet ? (
                                                                     <span
                                                                         className={
-                                                                            student.wallet_balance >= total
+                                                                            student.wallet_balance >=
+                                                                            total
                                                                                 ? 'text-green-600'
                                                                                 : 'text-red-600'
                                                                         }
                                                                     >
-                                                                        {formatCurrency(student.wallet_balance)}
+                                                                        {formatCurrency(
+                                                                            student.wallet_balance,
+                                                                        )}
                                                                     </span>
                                                                 ) : (
                                                                     <span className="text-orange-600">
-                                                                        No wallet
+                                                                        No
+                                                                        wallet
                                                                     </span>
                                                                 )}
                                                             </div>
                                                         </div>
-                                                    )
+                                                    ),
                                                 )}
                                             </div>
                                         )}

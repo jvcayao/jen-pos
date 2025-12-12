@@ -155,6 +155,7 @@ class OrderController extends Controller
 
             if (!$wallet) {
                 $walletTypeName = $walletType === 'subscribe' ? 'Subscribe' : 'Non-Subscribe';
+
                 return back()->with('flash', [
                     'message' => "Student's {$walletTypeName} Wallet is not available! They can only pay with Cash or G-Cash.",
                     'type' => 'error',

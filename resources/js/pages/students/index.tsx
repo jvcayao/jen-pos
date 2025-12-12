@@ -833,9 +833,7 @@ function StudentCard({ student }: { student: Student }) {
                                 Wallet
                             </Button>
                             <Button variant="outline" size="sm" asChild>
-                                <Link
-                                    href={`/student-dashboard/${student.id}`}
-                                >
+                                <Link href={`/student-dashboard/${student.id}`}>
                                     <Eye className="mr-1 h-4 w-4" />
                                     Dashboard
                                 </Link>
