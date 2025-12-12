@@ -31,6 +31,7 @@ class Order extends Model
         'reason',
         'is_payed',
         'payment_method',
+        'wallet_type',
         'payment_vendor',
         'payment_vendor_id',
     ];

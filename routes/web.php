@@ -8,6 +8,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\StudentDashboardController;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::permanentRedirect('/', '/menu');
@@ -42,6 +43,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::get('students/search', [StudentController::class, 'search'])->name('students.search');
+    Route::get('students/by-student-id', [StudentController::class, 'getByStudentId'])->name('students.by-student-id');
     Route::resource('students', StudentController::class)
         ->only(['index', 'store', 'update', 'destroy']);
     Route::prefix('students')->name('students.')->group(function () {
@@ -49,6 +51,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/{student}/withdraw', [StudentController::class, 'withdraw'])->name('withdraw');
         Route::get('/{student}/transactions', [StudentController::class, 'transactions'])->name('transactions');
         Route::get('/{student}/balance', [StudentController::class, 'getBalance'])->name('balance');
+    });
+
+    // Student Dashboard routes
+    Route::prefix('student-dashboard')->name('student-dashboard.')->group(function () {
+        Route::get('/', [StudentDashboardController::class, 'index'])->name('index');
+        Route::get('/search', [StudentDashboardController::class, 'searchStudent'])->name('search');
+        Route::get('/{student}', [StudentDashboardController::class, 'show'])->name('show');
+        Route::get('/{student}/orders', [StudentDashboardController::class, 'getOrders'])->name('orders');
     });
 });
 

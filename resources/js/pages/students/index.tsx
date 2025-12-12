@@ -27,12 +27,13 @@ import {
 } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     ArrowDownCircle,
     ArrowUpCircle,
     ChevronLeft,
     ChevronRight,
+    Eye,
     History,
     Pencil,
     Plus,
@@ -61,7 +62,9 @@ interface Student {
     guardian_phone: string | null;
     address: string | null;
     is_active: boolean;
+    wallet_type: string | null;
     wallet_balance: number;
+    has_wallet: boolean;
     created_at: string;
 }
 
@@ -102,6 +105,7 @@ interface StudentFormData {
     guardian_phone: string;
     address: string;
     is_active: boolean;
+    wallet_type: string;
 }
 
 const formatCurrency = (value: number) => {
@@ -124,6 +128,7 @@ function getDefaultFormData(): StudentFormData {
         guardian_phone: '',
         address: '',
         is_active: true,
+        wallet_type: '',
     };
 }
 
@@ -140,6 +145,7 @@ function getFormDataFromStudent(student: Student): StudentFormData {
         guardian_phone: student.guardian_phone ?? '',
         address: student.address ?? '',
         is_active: student.is_active,
+        wallet_type: student.wallet_type ?? '',
     };
 }
 
@@ -264,28 +270,52 @@ function StudentFormFields({
                         }
                     />
                 </div>
-                {isEdit && (
-                    <div className="grid gap-2">
-                        <Label>Status</Label>
-                        <Select
-                            value={form.data.is_active ? 'active' : 'inactive'}
-                            onValueChange={(value) =>
-                                form.setData('is_active', value === 'active')
-                            }
-                        >
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="active">Active</SelectItem>
-                                <SelectItem value="inactive">
-                                    Inactive
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                )}
+                <div className="grid gap-2">
+                    <Label>Wallet Type</Label>
+                    <Select
+                        value={form.data.wallet_type || 'none'}
+                        onValueChange={(value) =>
+                            form.setData(
+                                'wallet_type',
+                                value === 'none' ? '' : value,
+                            )
+                        }
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select wallet type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">No Wallet</SelectItem>
+                            <SelectItem value="subscribe">
+                                Subscribe Wallet
+                            </SelectItem>
+                            <SelectItem value="non-subscribe">
+                                Non-Subscribe Wallet
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
+
+            {isEdit && (
+                <div className="grid gap-2">
+                    <Label>Status</Label>
+                    <Select
+                        value={form.data.is_active ? 'active' : 'inactive'}
+                        onValueChange={(value) =>
+                            form.setData('is_active', value === 'active')
+                        }
+                    >
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
 
             <div className="grid gap-2">
                 <Label>Address</Label>
@@ -469,12 +499,15 @@ function WalletModal({
     useEffect(() => {
         if (open) {
             setBalance(student.wallet_balance);
-            fetchTransactions();
+            if (student.wallet_type) {
+                fetchTransactions();
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, student.id]);
 
     const fetchTransactions = async () => {
+        if (!student.wallet_type) return;
         try {
             const response = await fetch(
                 `/students/${student.id}/transactions`,
@@ -492,7 +525,10 @@ function WalletModal({
         setLoading(true);
         router.post(
             `/students/${student.id}/deposit`,
-            { amount: parseFloat(amount), description },
+            {
+                amount: parseFloat(amount),
+                description,
+            },
             {
                 preserveScroll: true,
                 onSuccess: () => {
@@ -510,7 +546,10 @@ function WalletModal({
         setLoading(true);
         router.post(
             `/students/${student.id}/withdraw`,
-            { amount: parseFloat(amount), description },
+            {
+                amount: parseFloat(amount),
+                description,
+            },
             {
                 preserveScroll: true,
                 onSuccess: () => {
@@ -525,6 +564,9 @@ function WalletModal({
 
     if (!open) return null;
 
+    const walletTypeName =
+        student.wallet_type === 'subscribe' ? 'Subscribe' : 'Non-Subscribe';
+
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="max-w-lg">
@@ -538,128 +580,157 @@ function WalletModal({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 p-4">
-                    <div className="text-sm text-muted-foreground">
-                        Current Balance
+                {!student.wallet_type ? (
+                    <div className="rounded-lg bg-muted/50 p-6 text-center">
+                        <Wallet className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                            No wallet assigned to this student.
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            Edit the student to assign a wallet type.
+                        </p>
                     </div>
-                    <div className="text-3xl font-bold">
-                        {formatCurrency(balance)}
-                    </div>
-                </div>
-
-                <div className="flex gap-2">
-                    <Button
-                        variant={
-                            activeTab === 'deposit' ? 'default' : 'outline'
-                        }
-                        size="sm"
-                        onClick={() => setActiveTab('deposit')}
-                        className="flex-1"
-                    >
-                        <ArrowDownCircle className="mr-1 h-4 w-4" />
-                        Deposit
-                    </Button>
-                    <Button
-                        variant={
-                            activeTab === 'withdraw' ? 'default' : 'outline'
-                        }
-                        size="sm"
-                        onClick={() => setActiveTab('withdraw')}
-                        className="flex-1"
-                    >
-                        <ArrowUpCircle className="mr-1 h-4 w-4" />
-                        Withdraw
-                    </Button>
-                    <Button
-                        variant={
-                            activeTab === 'history' ? 'default' : 'outline'
-                        }
-                        size="sm"
-                        onClick={() => setActiveTab('history')}
-                        className="flex-1"
-                    >
-                        <History className="mr-1 h-4 w-4" />
-                        History
-                    </Button>
-                </div>
-
-                {(activeTab === 'deposit' || activeTab === 'withdraw') && (
-                    <div className="space-y-4">
-                        <div className="grid gap-2">
-                            <Label>Amount</Label>
-                            <Input
-                                type="number"
-                                min="1"
-                                step="0.01"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                placeholder="Enter amount"
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label>Description (optional)</Label>
-                            <Input
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="e.g., Weekly allowance"
-                            />
-                        </div>
-                        <Button
-                            className="w-full"
-                            onClick={
-                                activeTab === 'deposit'
-                                    ? handleDeposit
-                                    : handleWithdraw
-                            }
-                            disabled={loading || !amount}
-                        >
-                            {loading
-                                ? 'Processing...'
-                                : activeTab === 'deposit'
-                                  ? 'Deposit'
-                                  : 'Withdraw'}
-                        </Button>
-                    </div>
-                )}
-
-                {activeTab === 'history' && (
-                    <div className="max-h-64 space-y-2 overflow-y-auto">
-                        {transactions.length === 0 ? (
-                            <div className="py-8 text-center text-muted-foreground">
-                                No transactions yet
+                ) : (
+                    <>
+                        <div className="rounded-lg border-2 border-primary bg-primary/10 p-4">
+                            <div className="text-xs font-medium text-muted-foreground">
+                                {walletTypeName} Wallet Balance
                             </div>
-                        ) : (
-                            transactions.map((t) => (
-                                <div
-                                    key={t.id}
-                                    className="flex items-center justify-between rounded-lg border p-3"
-                                >
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            {t.type === 'deposit' ? (
-                                                <ArrowDownCircle className="h-4 w-4 text-green-600" />
-                                            ) : (
-                                                <ArrowUpCircle className="h-4 w-4 text-red-600" />
-                                            )}
-                                            <span className="font-medium capitalize">
-                                                {t.type}
-                                            </span>
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {t.meta?.description ||
-                                                t.created_at}
-                                        </div>
-                                    </div>
-                                    <div
-                                        className={`font-semibold ${t.type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}
-                                    >
-                                        {t.type === 'deposit' ? '+' : '-'}
-                                        {formatCurrency(Math.abs(t.amount))}
-                                    </div>
+                            <div className="text-2xl font-bold">
+                                {formatCurrency(balance)}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <Button
+                                variant={
+                                    activeTab === 'deposit'
+                                        ? 'default'
+                                        : 'outline'
+                                }
+                                size="sm"
+                                onClick={() => setActiveTab('deposit')}
+                                className="flex-1"
+                            >
+                                <ArrowDownCircle className="mr-1 h-4 w-4" />
+                                Deposit
+                            </Button>
+                            <Button
+                                variant={
+                                    activeTab === 'withdraw'
+                                        ? 'default'
+                                        : 'outline'
+                                }
+                                size="sm"
+                                onClick={() => setActiveTab('withdraw')}
+                                className="flex-1"
+                            >
+                                <ArrowUpCircle className="mr-1 h-4 w-4" />
+                                Withdraw
+                            </Button>
+                            <Button
+                                variant={
+                                    activeTab === 'history'
+                                        ? 'default'
+                                        : 'outline'
+                                }
+                                size="sm"
+                                onClick={() => setActiveTab('history')}
+                                className="flex-1"
+                            >
+                                <History className="mr-1 h-4 w-4" />
+                                History
+                            </Button>
+                        </div>
+
+                        {(activeTab === 'deposit' ||
+                            activeTab === 'withdraw') && (
+                            <div className="space-y-4">
+                                <div className="grid gap-2">
+                                    <Label>Amount</Label>
+                                    <Input
+                                        type="number"
+                                        min="1"
+                                        step="0.01"
+                                        value={amount}
+                                        onChange={(e) =>
+                                            setAmount(e.target.value)
+                                        }
+                                        placeholder="Enter amount"
+                                    />
                                 </div>
-                            ))
+                                <div className="grid gap-2">
+                                    <Label>Description (optional)</Label>
+                                    <Input
+                                        value={description}
+                                        onChange={(e) =>
+                                            setDescription(e.target.value)
+                                        }
+                                        placeholder="e.g., Weekly allowance"
+                                    />
+                                </div>
+                                <Button
+                                    className="w-full"
+                                    onClick={
+                                        activeTab === 'deposit'
+                                            ? handleDeposit
+                                            : handleWithdraw
+                                    }
+                                    disabled={loading || !amount}
+                                >
+                                    {loading
+                                        ? 'Processing...'
+                                        : activeTab === 'deposit'
+                                          ? 'Deposit'
+                                          : 'Withdraw'}
+                                </Button>
+                            </div>
                         )}
-                    </div>
+
+                        {activeTab === 'history' && (
+                            <div className="max-h-64 space-y-2 overflow-y-auto">
+                                {transactions.length === 0 ? (
+                                    <div className="py-8 text-center text-muted-foreground">
+                                        No transactions yet
+                                    </div>
+                                ) : (
+                                    transactions.map((t) => (
+                                        <div
+                                            key={t.id}
+                                            className="flex items-center justify-between rounded-lg border p-3"
+                                        >
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    {t.type === 'deposit' ? (
+                                                        <ArrowDownCircle className="h-4 w-4 text-green-600" />
+                                                    ) : (
+                                                        <ArrowUpCircle className="h-4 w-4 text-red-600" />
+                                                    )}
+                                                    <span className="font-medium capitalize">
+                                                        {t.type}
+                                                    </span>
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {t.meta?.description ||
+                                                        t.created_at}
+                                                </div>
+                                            </div>
+                                            <div
+                                                className={`font-semibold ${t.type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}
+                                            >
+                                                {t.type === 'deposit'
+                                                    ? '+'
+                                                    : '-'}
+                                                {formatCurrency(
+                                                    Math.abs(t.amount),
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </>
                 )}
             </DialogContent>
         </Dialog>
@@ -725,29 +796,51 @@ function StudentCard({ student }: { student: Student }) {
                         )}
                     </div>
 
-                    <div className="rounded-lg bg-muted/50 p-3">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Wallet className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">
-                                    Wallet Balance
-                                </span>
-                            </div>
-                            <span className="font-semibold">
-                                {formatCurrency(student.wallet_balance)}
+                    <div className="space-y-2 rounded-lg bg-muted/50 p-3">
+                        <div className="flex items-center gap-2">
+                            <Wallet className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium text-muted-foreground">
+                                Wallet
                             </span>
                         </div>
+                        {student.wallet_type ? (
+                            <div className="text-sm">
+                                <div className="text-xs text-muted-foreground">
+                                    {student.wallet_type === 'subscribe'
+                                        ? 'Subscribe'
+                                        : 'Non-Subscribe'}{' '}
+                                    Wallet
+                                </div>
+                                <div className="font-semibold">
+                                    {formatCurrency(student.wallet_balance)}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-sm text-muted-foreground">
+                                No wallet assigned
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center justify-between gap-2 pt-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setWalletOpen(true)}
-                        >
-                            <Wallet className="mr-1 h-4 w-4" />
-                            Manage Wallet
-                        </Button>
+                        <div className="flex gap-1">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setWalletOpen(true)}
+                            >
+                                <Wallet className="mr-1 h-4 w-4" />
+                                Wallet
+                            </Button>
+                            <Button variant="outline" size="sm" asChild>
+                                <Link
+                                    href={`/student-dashboard/${student.id}`}
+                                >
+                                    <Eye className="mr-1 h-4 w-4" />
+                                    Dashboard
+                                </Link>
+                            </Button>
+                        </div>
                         <div className="flex gap-1">
                             <Button
                                 variant="ghost"

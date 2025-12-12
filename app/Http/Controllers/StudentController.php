@@ -34,7 +34,9 @@ class StudentController extends Controller
                 'guardian_phone' => $student->guardian_phone,
                 'address' => $student->address,
                 'is_active' => $student->is_active,
-                'wallet_balance' => $student->wallet_balance,
+                'wallet_type' => $student->wallet_type,
+                'wallet_balance' => $student->assigned_wallet_balance,
+                'has_wallet' => $student->hasAssignedWallet(),
                 'created_at' => $student->created_at->format('M d, Y'),
             ]);
 
@@ -57,12 +59,15 @@ class StudentController extends Controller
             'guardian_name' => 'nullable|string|max:255',
             'guardian_phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
+            'wallet_type' => 'nullable|in:subscribe,non-subscribe',
         ]);
 
         $student = Student::create($validated);
 
-        // Access wallet to auto-create it (bavix/laravel-wallet creates on first access)
-        $student->wallet;
+        // Create the assigned wallet if wallet_type is set
+        if ($student->wallet_type) {
+            $student->createAssignedWallet();
+        }
 
         return back()->with('flash', [
             'message' => 'Student created successfully!',
@@ -84,9 +89,15 @@ class StudentController extends Controller
             'guardian_phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
             'is_active' => 'boolean',
+            'wallet_type' => 'nullable|in:subscribe,non-subscribe',
         ]);
 
         $student->update($validated);
+
+        // Create the assigned wallet if wallet_type is set and wallet doesn't exist
+        if ($student->wallet_type && !$student->hasAssignedWallet()) {
+            $student->createAssignedWallet();
+        }
 
         return back()->with('flash', [
             'message' => 'Student updated successfully!',
@@ -119,28 +130,37 @@ class StudentController extends Controller
             'description' => 'nullable|string|max:255',
         ]);
 
+        if (!$student->wallet_type) {
+            return back()->with('flash', [
+                'message' => 'Student does not have a wallet type assigned.',
+                'type' => 'error',
+            ]);
+        }
+
         try {
             DB::beginTransaction();
 
-            $student->depositFloat(
+            // Get or create the assigned wallet
+            $wallet = $student->createAssignedWallet();
+
+            $wallet->depositFloat(
                 $validated['amount'],
                 ['description' => $validated['description'] ?? 'Wallet deposit']
             );
 
             DB::commit();
 
-            // Refresh to get updated balance
-            $student->refresh();
+            $walletName = $student->wallet_type === 'subscribe' ? 'Subscribe' : 'Non-Subscribe';
 
             return back()->with('flash', [
-                'message' => 'Deposit successful! New balance: ₱'.number_format($student->balanceFloatNum, 2),
+                'message' => "Deposit successful to {$walletName} Wallet! New balance: ₱".number_format($wallet->balanceFloatNum, 2),
                 'type' => 'success',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
 
             return back()->with('flash', [
-                'message' => 'Failed to process deposit.',
+                'message' => 'Failed to process deposit: '.$e->getMessage(),
                 'type' => 'error',
             ]);
         }
@@ -153,7 +173,23 @@ class StudentController extends Controller
             'description' => 'nullable|string|max:255',
         ]);
 
-        if ($student->balanceFloatNum < $validated['amount']) {
+        if (!$student->wallet_type) {
+            return back()->with('flash', [
+                'message' => 'Student does not have a wallet type assigned.',
+                'type' => 'error',
+            ]);
+        }
+
+        $wallet = $student->getAssignedWallet();
+
+        if (!$wallet) {
+            return back()->with('flash', [
+                'message' => 'Wallet does not exist.',
+                'type' => 'error',
+            ]);
+        }
+
+        if ($wallet->balanceFloatNum < $validated['amount']) {
             return back()->with('flash', [
                 'message' => 'Insufficient balance.',
                 'type' => 'error',
@@ -163,18 +199,17 @@ class StudentController extends Controller
         try {
             DB::beginTransaction();
 
-            $student->withdrawFloat(
+            $wallet->withdrawFloat(
                 $validated['amount'],
                 ['description' => $validated['description'] ?? 'Wallet withdrawal']
             );
 
             DB::commit();
 
-            // Refresh to get updated balance
-            $student->refresh();
+            $walletName = $student->wallet_type === 'subscribe' ? 'Subscribe' : 'Non-Subscribe';
 
             return back()->with('flash', [
-                'message' => 'Withdrawal successful! New balance: ₱'.number_format($student->balanceFloatNum, 2),
+                'message' => "Withdrawal successful from {$walletName} Wallet! New balance: ₱".number_format($wallet->balanceFloatNum, 2),
                 'type' => 'success',
             ]);
         } catch (\Exception $e) {
@@ -189,11 +224,21 @@ class StudentController extends Controller
 
     public function transactions(Student $student): JsonResponse
     {
-        $wallet = $student->wallet;
+        if (!$student->wallet_type) {
+            return response()->json([
+                'transactions' => [],
+                'balance' => 0,
+                'wallet_exists' => false,
+            ]);
+        }
+
+        $wallet = $student->getAssignedWallet();
+
         if (!$wallet) {
             return response()->json([
                 'transactions' => [],
                 'balance' => 0,
+                'wallet_exists' => false,
             ]);
         }
 
@@ -211,7 +256,8 @@ class StudentController extends Controller
 
         return response()->json([
             'transactions' => $transactions,
-            'balance' => $student->balanceFloatNum,
+            'balance' => $wallet->balanceFloatNum,
+            'wallet_exists' => true,
         ]);
     }
 
@@ -228,7 +274,9 @@ class StudentController extends Controller
                 'full_name' => $student->full_name,
                 'grade_level' => $student->grade_level,
                 'section' => $student->section,
-                'wallet_balance' => $student->wallet_balance,
+                'wallet_type' => $student->wallet_type,
+                'wallet_balance' => $student->assigned_wallet_balance,
+                'has_wallet' => $student->hasAssignedWallet(),
             ]);
 
         return response()->json(['students' => $students]);
@@ -237,9 +285,39 @@ class StudentController extends Controller
     public function getBalance(Student $student): JsonResponse
     {
         return response()->json([
-            'balance' => $student->balanceFloatNum,
+            'wallet_type' => $student->wallet_type,
+            'wallet_balance' => $student->assigned_wallet_balance,
+            'has_wallet' => $student->hasAssignedWallet(),
             'student_id' => $student->student_id,
             'full_name' => $student->full_name,
+        ]);
+    }
+
+    public function getByStudentId(Request $request): JsonResponse
+    {
+        $studentId = $request->query('student_id');
+
+        if (!$studentId) {
+            return response()->json(['error' => 'Student ID is required'], 400);
+        }
+
+        $student = Student::where('student_id', $studentId)->active()->first();
+
+        if (!$student) {
+            return response()->json(['error' => 'Student not found or inactive'], 404);
+        }
+
+        return response()->json([
+            'student' => [
+                'id' => $student->id,
+                'student_id' => $student->student_id,
+                'full_name' => $student->full_name,
+                'grade_level' => $student->grade_level,
+                'section' => $student->section,
+                'wallet_type' => $student->wallet_type,
+                'wallet_balance' => $student->assigned_wallet_balance,
+                'has_wallet' => $student->hasAssignedWallet(),
+            ],
         ]);
     }
 }
