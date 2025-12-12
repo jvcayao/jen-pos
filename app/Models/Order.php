@@ -18,6 +18,7 @@ class Order extends Model
         'user_id',
         'account_id',
         'cashier_id',
+        'student_id',
         'source',
         'total',
         'discount',
@@ -73,5 +74,10 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function student(): BelongsTo
+    {
+        return $this->belongsTo(Student::class);
     }
 }

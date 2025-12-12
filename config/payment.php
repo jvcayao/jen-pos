@@ -24,6 +24,13 @@ return [
             'vendor' => 'gcash',
             'enabled' => true,
         ],
+        'wallet' => [
+            'id' => 'wallet',
+            'name' => 'Student Wallet',
+            'vendor' => 'wallet',
+            'enabled' => true,
+            'requires_student' => true,
+        ],
         'card' => [
             'id' => 'card',
             'name' => 'Credit/Debit Card',
