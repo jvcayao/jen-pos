@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use Inertia\Inertia;
 use App\Models\Order;
+use App\Models\Student;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,12 +36,16 @@ class DashboardController extends Controller
         // Get recent orders with pagination
         $orders = $this->getOrders($request, $startDate, $endDate);
 
+        // Get student wallet statistics
+        $studentStats = $this->getStudentStats($startDate, $endDate);
+
         return Inertia::render('dashboard', [
             'stats' => $stats,
             'salesChart' => $salesChart,
             'topProducts' => $topProducts,
             'paymentBreakdown' => $paymentBreakdown,
             'orders' => $orders,
+            'studentStats' => $studentStats,
             'filters' => [
                 'start_date' => $startDate->toDateString(),
                 'end_date' => $endDate->toDateString(),
@@ -198,6 +203,60 @@ class DashboardController extends Controller
                 'total' => round($item->total, 2),
             ])
             ->toArray();
+    }
+
+    private function getStudentStats(Carbon $startDate, Carbon $endDate): array
+    {
+        // Total students
+        $totalStudents = Student::count();
+        $activeStudents = Student::where('is_active', true)->count();
+
+        // Total wallet balance across all students
+        $totalWalletBalance = DB::table('wallets')
+            ->where('holder_type', Student::class)
+            ->sum(DB::raw('balance / 100')); // Convert from cents if stored that way
+
+        // Wallet transactions in period
+        $walletOrders = Order::whereBetween('created_at', [$startDate, $endDate])
+            ->where('status', 'confirm')
+            ->where('is_void', false)
+            ->where('payment_method', 'wallet')
+            ->whereNotNull('student_id');
+
+        $walletSales = (clone $walletOrders)->sum('total');
+        $walletOrdersCount = (clone $walletOrders)->count();
+
+        // Top students by spending in period
+        $topStudents = Order::whereBetween('created_at', [$startDate, $endDate])
+            ->where('status', 'confirm')
+            ->where('is_void', false)
+            ->whereNotNull('student_id')
+            ->select(
+                'student_id',
+                DB::raw('SUM(total) as total_spent'),
+                DB::raw('COUNT(*) as order_count')
+            )
+            ->groupBy('student_id')
+            ->orderByDesc('total_spent')
+            ->limit(5)
+            ->with('student:id,student_id,first_name,last_name')
+            ->get()
+            ->map(fn ($item) => [
+                'student_id' => $item->student?->student_id ?? 'Unknown',
+                'name' => $item->student ? "{$item->student->first_name} {$item->student->last_name}" : 'Unknown',
+                'total_spent' => round($item->total_spent, 2),
+                'order_count' => $item->order_count,
+            ])
+            ->toArray();
+
+        return [
+            'total_students' => $totalStudents,
+            'active_students' => $activeStudents,
+            'total_wallet_balance' => round((float) $totalWalletBalance, 2),
+            'wallet_sales' => round($walletSales, 2),
+            'wallet_orders_count' => $walletOrdersCount,
+            'top_students' => $topStudents,
+        ];
     }
 
     private function getOrders(Request $request, Carbon $startDate, Carbon $endDate)

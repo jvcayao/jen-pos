@@ -35,12 +35,15 @@ import {
     Download,
     FileSpreadsheet,
     FileText,
+    GraduationCap,
     Package,
     Receipt,
     Search,
     ShoppingCart,
     TrendingDown,
     TrendingUp,
+    Users,
+    Wallet,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import {
@@ -119,6 +122,22 @@ interface PaymentBreakdown {
     [key: string]: string | number;
 }
 
+interface TopStudent {
+    student_id: string;
+    name: string;
+    total_spent: number;
+    order_count: number;
+}
+
+interface StudentStats {
+    total_students: number;
+    active_students: number;
+    total_wallet_balance: number;
+    wallet_sales: number;
+    wallet_orders_count: number;
+    top_students: TopStudent[];
+}
+
 interface PaginatedOrders {
     data: Order[];
     current_page: number;
@@ -143,6 +162,7 @@ interface DashboardProps {
     paymentBreakdown: PaymentBreakdown[];
     orders: PaginatedOrders;
     filters: Filters;
+    studentStats?: StudentStats;
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -408,6 +428,7 @@ function OrdersTable({
                             <SelectItem value="all">All Methods</SelectItem>
                             <SelectItem value="cash">Cash</SelectItem>
                             <SelectItem value="gcash">G-Cash</SelectItem>
+                            <SelectItem value="wallet">Student Wallet</SelectItem>
                             <SelectItem value="card">Card</SelectItem>
                         </SelectContent>
                     </Select>
@@ -638,6 +659,7 @@ export default function Dashboard({
     paymentBreakdown,
     orders,
     filters,
+    studentStats,
 }: DashboardProps) {
     const chartRef = useRef<HTMLDivElement>(null);
     const [exporting, setExporting] = useState(false);
@@ -899,6 +921,101 @@ export default function Dashboard({
                         format="currency"
                     />
                 </div>
+
+                {/* Student Stats Section */}
+                {studentStats && (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Total Students
+                                </CardTitle>
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">
+                                    {studentStats.total_students}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    {studentStats.active_students} active
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Total Wallet Balance
+                                </CardTitle>
+                                <Wallet className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">
+                                    {formatCurrency(
+                                        studentStats.total_wallet_balance,
+                                    )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Across all students
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Wallet Sales
+                                </CardTitle>
+                                <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">
+                                    {formatCurrency(studentStats.wallet_sales)}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    {studentStats.wallet_orders_count} orders
+                                </p>
+                            </CardContent>
+                        </Card>
+                        <Card className="md:col-span-2">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Top Students by Spending
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {studentStats.top_students.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {studentStats.top_students
+                                            .slice(0, 3)
+                                            .map((student, idx) => (
+                                                <div
+                                                    key={student.student_id}
+                                                    className="flex items-center justify-between text-sm"
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-medium">
+                                                            {idx + 1}
+                                                        </span>
+                                                        <span className="truncate">
+                                                            {student.name}
+                                                        </span>
+                                                    </div>
+                                                    <span className="font-medium">
+                                                        {formatCurrency(
+                                                            student.total_spent,
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                        No student purchases yet
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
 
                 {/* Charts Row */}
                 <div className="grid gap-4 lg:grid-cols-3">

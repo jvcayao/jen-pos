@@ -22,6 +22,7 @@ class CreateOrderRequest extends FormRequest
             'amount_2' => ['nullable', 'numeric', 'min:0'],
             'discount_code' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:500'],
+            'student_id' => ['nullable', 'integer', 'exists:students,id'],
         ];
     }
 

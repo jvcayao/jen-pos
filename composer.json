@@ -11,6 +11,7 @@
     "require": {
         "php": "^8.2",
         "aliziodev/laravel-taxonomy": "^2.6",
+        "bavix/laravel-wallet": "^11.4",
         "binafy/laravel-cart": "^2.0",
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/fortify": "^1.30",

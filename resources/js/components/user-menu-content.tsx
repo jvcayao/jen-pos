@@ -8,11 +8,21 @@ import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { dashboard, logout } from '@/routes';
 import { index as categoriesIndex } from '@/routes/categories';
+import { index as ordersIndex } from '@/routes/orders';
 import { index as productsIndex } from '@/routes/products';
+import { index as studentsIndex } from '@/routes/students';
 import { edit as editProfile } from '@/routes/profile';
 import { type User } from '@/types';
 import { Link, router } from '@inertiajs/react';
-import { LogOut, Settings } from 'lucide-react';
+import {
+    FolderTree,
+    GraduationCap,
+    LayoutDashboard,
+    LogOut,
+    Package,
+    Receipt,
+    Settings,
+} from 'lucide-react';
 
 interface UserMenuContentProps {
     user: User;
@@ -43,8 +53,32 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                         prefetch
                         onClick={cleanup}
                     >
-                        <Settings className="mr-2" />
+                        <LayoutDashboard className="mr-2" />
                         Dashboard
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link
+                        className="block w-full"
+                        href={ordersIndex.url()}
+                        as="button"
+                        prefetch
+                        onClick={cleanup}
+                    >
+                        <Receipt className="mr-2" />
+                        Orders
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link
+                        className="block w-full"
+                        href={studentsIndex.url()}
+                        as="button"
+                        prefetch
+                        onClick={cleanup}
+                    >
+                        <GraduationCap className="mr-2" />
+                        Students
                     </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -55,8 +89,8 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                         prefetch
                         onClick={cleanup}
                     >
-                        <Settings className="mr-2" />
-                        Product
+                        <Package className="mr-2" />
+                        Products
                     </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -67,7 +101,7 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                         prefetch
                         onClick={cleanup}
                     >
-                        <Settings className="mr-2" />
+                        <FolderTree className="mr-2" />
                         Categories
                     </Link>
                 </DropdownMenuItem>

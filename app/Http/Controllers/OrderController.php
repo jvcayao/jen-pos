@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Inertia\Inertia;
 use App\Models\Order;
 use Inertia\Response;
+use App\Models\Student;
 use App\Models\OrderItem;
 use App\Models\DiscountCode;
 use Illuminate\Http\Request;
@@ -111,6 +112,32 @@ class OrderController extends Controller
             ]);
         }
 
+        // Handle wallet payment - requires student
+        $student = null;
+        if ($paymentMethod === 'wallet') {
+            if (empty($validated['student_id'])) {
+                return back()->with('flash', [
+                    'message' => 'Student is required for wallet payment!',
+                    'type' => 'error',
+                ]);
+            }
+
+            $student = Student::find($validated['student_id']);
+            if (!$student) {
+                return back()->with('flash', [
+                    'message' => 'Student not found!',
+                    'type' => 'error',
+                ]);
+            }
+
+            if (!$student->is_active) {
+                return back()->with('flash', [
+                    'message' => 'Student account is inactive!',
+                    'type' => 'error',
+                ]);
+            }
+        }
+
         try {
             DB::beginTransaction();
 
@@ -170,10 +197,29 @@ class OrderController extends Controller
             $adjustedVatableAmount = $vatableGrossTotal * $discountRatio;
             $vat = $adjustedVatableAmount * ($taxRate / (1 + $taxRate));
 
+            // Check wallet balance for wallet payments
+            if ($paymentMethod === 'wallet' && $student) {
+                if ($student->balanceFloatNum < $total) {
+                    DB::rollBack();
+
+                    return back()->with('flash', [
+                        'message' => 'Insufficient wallet balance! Current balance: ₱' . number_format($student->balanceFloatNum, 2),
+                        'type' => 'error',
+                    ]);
+                }
+
+                // Deduct from wallet
+                $student->withdrawFloat($total, [
+                    'description' => 'Payment for order',
+                    'order_total' => $total,
+                ]);
+            }
+
             $order = Order::create([
                 'user_id' => auth()->id(),
                 'account_id' => auth()->id(),
                 'cashier_id' => auth()->id(),
+                'student_id' => $student?->id,
                 'source' => 'pos',
                 'total' => $total,
                 'discount' => $discountAmount,
