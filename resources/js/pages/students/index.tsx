@@ -28,12 +28,15 @@ import {
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     ArrowDownCircle,
     ArrowUpCircle,
     ChevronLeft,
     ChevronRight,
+    Download,
     Eye,
+    FileText,
     History,
     Pencil,
     Plus,
@@ -42,6 +45,7 @@ import {
     Trash2,
     User,
     Wallet,
+    X,
 } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 
@@ -823,7 +827,7 @@ function StudentQrModal({
                             <p className="text-sm text-red-600">{qrError}</p>
                         ) : qrSvg ? (
                             <div
-                                className="h-48 w-48"
+                                className="aspect-square w-full max-w-50 [&_svg]:h-full [&_svg]:w-full"
                                 dangerouslySetInnerHTML={{ __html: qrSvg }}
                             />
                         ) : null}
@@ -832,13 +836,26 @@ function StudentQrModal({
                         Scan this QR code during checkout to quickly select the
                         student.
                     </p>
-                    <div className="flex gap-2">
-                        <Button asChild variant="outline">
+                    <div className="flex flex-wrap justify-center gap-2">
+                        <Button asChild variant="outline" size="sm">
                             <a href={qrSrc} target="_blank" rel="noreferrer">
-                                Open in new tab
+                                Open SVG
                             </a>
                         </Button>
-                        <Button variant="secondary" onClick={onClose}>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                                window.open(
+                                    `/students/${student.id}/export-qr`,
+                                    '_blank',
+                                )
+                            }
+                        >
+                            <Download className="mr-1 h-4 w-4" />
+                            Download PDF
+                        </Button>
+                        <Button variant="secondary" size="sm" onClick={onClose}>
                             Close
                         </Button>
                     </div>
@@ -848,7 +865,17 @@ function StudentQrModal({
     );
 }
 
-function StudentCard({ student }: { student: Student }) {
+function StudentCard({
+    student,
+    isSelected,
+    onSelect,
+    selectionMode,
+}: {
+    student: Student;
+    isSelected: boolean;
+    onSelect: (id: number, selected: boolean) => void;
+    selectionMode: boolean;
+}) {
     const [editing, setEditing] = useState(false);
     const [walletOpen, setWalletOpen] = useState(false);
     const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -861,12 +888,27 @@ function StudentCard({ student }: { student: Student }) {
         });
     };
 
+    const handleExportPdf = () => {
+        window.open(`/students/${student.id}/export-pdf`, '_blank');
+    };
+
     return (
         <>
-            <Card className="group">
+            <Card
+                className={`group flex h-full flex-col transition-all ${isSelected ? 'ring-2 ring-primary' : ''}`}
+            >
                 <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
+                            {selectionMode && (
+                                <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={(checked) =>
+                                        onSelect(student.id, !!checked)
+                                    }
+                                    className="h-5 w-5"
+                                />
+                            )}
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                                 <User className="h-5 w-5 text-primary" />
                             </div>
@@ -888,24 +930,20 @@ function StudentCard({ student }: { student: Student }) {
                         </Badge>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="flex flex-1 flex-col space-y-3">
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                        {student.grade_level && (
-                            <div>
-                                <span className="text-muted-foreground">
-                                    Grade:{' '}
-                                </span>
-                                {student.grade_level}
-                            </div>
-                        )}
-                        {student.section && (
-                            <div>
-                                <span className="text-muted-foreground">
-                                    Section:{' '}
-                                </span>
-                                {student.section}
-                            </div>
-                        )}
+                        <div>
+                            <span className="text-muted-foreground">
+                                Grade:{' '}
+                            </span>
+                            {student.grade_level || '-'}
+                        </div>
+                        <div>
+                            <span className="text-muted-foreground">
+                                Section:{' '}
+                            </span>
+                            {student.section || '-'}
+                        </div>
                     </div>
 
                     <div className="space-y-2 rounded-lg bg-muted/50 p-3">
@@ -934,7 +972,7 @@ function StudentCard({ student }: { student: Student }) {
                         )}
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-2">
                         <div className="flex flex-wrap gap-2">
                             <Button
                                 variant="outline"
@@ -960,6 +998,14 @@ function StudentCard({ student }: { student: Student }) {
                             </Button>
                         </div>
                         <div className="flex gap-1">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleExportPdf}
+                                title="Export PDF"
+                            >
+                                <FileText className="h-4 w-4" />
+                            </Button>
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -1016,6 +1062,8 @@ export default function StudentsIndex({ students, filters }: StudentPageProps) {
     const [search, setSearch] = useState(filters?.search ?? '');
     const [status, setStatus] = useState(filters?.status ?? '');
     const [openCreate, setOpenCreate] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [selectionMode, setSelectionMode] = useState(false);
 
     useEffect(() => {
         const t = setTimeout(() => {
@@ -1040,6 +1088,61 @@ export default function StudentsIndex({ students, filters }: StudentPageProps) {
         }
     };
 
+    const handleSelect = (id: number, selected: boolean) => {
+        setSelectedIds((prev) =>
+            selected ? [...prev, id] : prev.filter((i) => i !== id),
+        );
+    };
+
+    const handleSelectAll = () => {
+        if (selectedIds.length === students.data.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(students.data.map((s) => s.id));
+        }
+    };
+
+    const handleExportSelected = () => {
+        if (selectedIds.length === 0) return;
+        const idsParam = selectedIds.join(',');
+        window.open(`/students/export/pdf?ids=${idsParam}`, '_blank');
+    };
+
+    const handleExportAll = () => {
+        const params = new URLSearchParams();
+        if (search) params.set('search', search);
+        if (status) params.set('status', status);
+        const queryString = params.toString();
+        window.open(
+            `/students/export/pdf${queryString ? `?${queryString}` : ''}`,
+            '_blank',
+        );
+    };
+
+    const handleExportSelectedQr = () => {
+        if (selectedIds.length === 0) return;
+        const idsParam = selectedIds.join(',');
+        window.open(`/students/export/qr?ids=${idsParam}`, '_blank');
+    };
+
+    const handleExportAllQr = () => {
+        const params = new URLSearchParams();
+        if (search) params.set('search', search);
+        if (status) params.set('status', status);
+        const queryString = params.toString();
+        window.open(
+            `/students/export/qr${queryString ? `?${queryString}` : ''}`,
+            '_blank',
+        );
+    };
+
+    const toggleSelectionMode = () => {
+        setSelectionMode(!selectionMode);
+        if (selectionMode) {
+            setSelectedIds([]);
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Students" />
@@ -1051,11 +1154,83 @@ export default function StudentsIndex({ students, filters }: StudentPageProps) {
                             Manage student accounts and wallets
                         </p>
                     </div>
-                    <Button onClick={() => setOpenCreate(true)}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Add Student
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={toggleSelectionMode}
+                        >
+                            {selectionMode ? (
+                                <>
+                                    <X className="mr-1 h-4 w-4" />
+                                    Cancel
+                                </>
+                            ) : (
+                                <>
+                                    <Download className="mr-1 h-4 w-4" />
+                                    Export
+                                </>
+                            )}
+                        </Button>
+                        <Button onClick={() => setOpenCreate(true)}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Add Student
+                        </Button>
+                    </div>
                 </div>
+
+                {selectionMode && (
+                    <div className="flex items-center justify-between rounded-lg border border-primary/50 bg-primary/5 p-3">
+                        <div className="flex items-center gap-4">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleSelectAll}
+                            >
+                                {selectedIds.length === students.data.length
+                                    ? 'Deselect All'
+                                    : 'Select All'}
+                            </Button>
+                            <span className="text-sm text-muted-foreground">
+                                {selectedIds.length} of {students.data.length}{' '}
+                                selected
+                            </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleExportAll}
+                            >
+                                <FileText className="mr-1 h-4 w-4" />
+                                Export All PDF
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleExportAllQr}
+                            >
+                                <QrCode className="mr-1 h-4 w-4" />
+                                Export All QR
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={handleExportSelected}
+                                disabled={selectedIds.length === 0}
+                            >
+                                <Download className="mr-1 h-4 w-4" />
+                                PDF ({selectedIds.length})
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={handleExportSelectedQr}
+                                disabled={selectedIds.length === 0}
+                            >
+                                <QrCode className="mr-1 h-4 w-4" />
+                                QR ({selectedIds.length})
+                            </Button>
+                        </div>
+                    </div>
+                )}
 
                 <div className="flex flex-col gap-2 rounded-lg border p-3 md:flex-row md:items-center md:justify-between">
                     <div className="relative w-full md:w-80">
@@ -1098,6 +1273,9 @@ export default function StudentsIndex({ students, filters }: StudentPageProps) {
                                 <StudentCard
                                     key={student.id}
                                     student={student}
+                                    isSelected={selectedIds.includes(student.id)}
+                                    onSelect={handleSelect}
+                                    selectionMode={selectionMode}
                                 />
                             ))}
                         </div>

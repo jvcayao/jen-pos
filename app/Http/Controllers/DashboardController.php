@@ -9,6 +9,9 @@ use App\Models\Student;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Exports\DashboardExport;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
 
 class DashboardController extends Controller
 {
@@ -52,6 +55,7 @@ class DashboardController extends Controller
                 'search' => $request->input('search', ''),
                 'status' => $request->input('status', ''),
                 'payment_method' => $request->input('payment_method', ''),
+                'wallet_type' => $request->input('wallet_type', ''),
             ],
         ]);
     }
@@ -283,6 +287,12 @@ class DashboardController extends Controller
             $query->where('payment_method', $request->input('payment_method'));
         }
 
+        // Filter by wallet type (only applies to wallet payments)
+        if ($request->filled('wallet_type')) {
+            $query->where('payment_method', 'wallet')
+                ->where('wallet_type', $request->input('wallet_type'));
+        }
+
         return $query->orderByDesc('created_at')
             ->paginate(15)
             ->through(fn ($order) => [
@@ -351,5 +361,112 @@ class DashboardController extends Controller
                 'period' => $startDate->format('M d, Y').' - '.$endDate->format('M d, Y'),
             ],
         ]);
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $startDate = $request->input('start_date')
+            ? Carbon::parse($request->input('start_date'))->startOfDay()
+            : Carbon::now()->startOfMonth();
+        $endDate = $request->input('end_date')
+            ? Carbon::parse($request->input('end_date'))->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        $filename = 'sales-report-' . $startDate->format('Y-m-d') . '-to-' . $endDate->format('Y-m-d') . '.xlsx';
+
+        return Excel::download(
+            new DashboardExport(
+                $startDate,
+                $endDate,
+                $request->input('status'),
+                $request->input('payment_method'),
+                $request->input('wallet_type')
+            ),
+            $filename
+        );
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $startDate = $request->input('start_date')
+            ? Carbon::parse($request->input('start_date'))->startOfDay()
+            : Carbon::now()->startOfMonth();
+        $endDate = $request->input('end_date')
+            ? Carbon::parse($request->input('end_date'))->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        // Get summary statistics
+        $baseQuery = Order::whereBetween('created_at', [$startDate, $endDate])
+            ->where('status', 'confirm')
+            ->where('is_void', false);
+
+        if ($request->filled('payment_method')) {
+            $baseQuery->where('payment_method', $request->input('payment_method'));
+        }
+
+        if ($request->filled('wallet_type')) {
+            $baseQuery->where('payment_method', 'wallet')
+                ->where('wallet_type', $request->input('wallet_type'));
+        }
+
+        $totalSales = (clone $baseQuery)->sum('total');
+        $totalOrders = (clone $baseQuery)->count();
+        $totalVat = (clone $baseQuery)->sum('vat');
+        $averageOrderValue = $totalOrders > 0 ? $totalSales / $totalOrders : 0;
+
+        $summary = [
+            'total_sales' => $totalSales,
+            'total_orders' => $totalOrders,
+            'total_vat' => $totalVat,
+            'average_order_value' => $averageOrderValue,
+        ];
+
+        // Get top products
+        $topProducts = $this->getTopProducts($startDate, $endDate, 10);
+
+        // Get orders
+        $ordersQuery = Order::with(['items', 'user', 'cashier'])
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        if ($request->filled('status')) {
+            $ordersQuery->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('payment_method')) {
+            $ordersQuery->where('payment_method', $request->input('payment_method'));
+        }
+
+        if ($request->filled('wallet_type')) {
+            $ordersQuery->where('payment_method', 'wallet')
+                ->where('wallet_type', $request->input('wallet_type'));
+        }
+
+        $orders = $ordersQuery->orderByDesc('created_at')
+            ->limit(100)
+            ->get()
+            ->map(fn ($order) => [
+                'uuid' => $order->uuid,
+                'customer' => $order->user?->name ?? 'Walk-in',
+                'items_count' => $order->items->count(),
+                'total' => $order->total,
+                'status' => $order->status,
+                'payment_method' => $order->payment_method,
+                'created_at' => $order->created_at->format('Y-m-d H:i'),
+            ])
+            ->toArray();
+
+        $period = $startDate->format('M d, Y') . ' - ' . $endDate->format('M d, Y');
+        $filename = 'sales-report-' . $startDate->format('Y-m-d') . '-to-' . $endDate->format('Y-m-d') . '.pdf';
+
+        $pdf = Pdf::loadView('exports.dashboard-pdf', [
+            'summary' => $summary,
+            'topProducts' => $topProducts,
+            'orders' => $orders,
+            'period' => $period,
+        ]);
+
+        $pdf->setPaper('a4', 'portrait');
+
+        return $pdf->download($filename);
     }
 }

@@ -15,6 +15,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('dashboard/export', [DashboardController::class, 'export'])->name('dashboard.export');
+    Route::get('dashboard/export/excel', [DashboardController::class, 'exportExcel'])->name('dashboard.export.excel');
+    Route::get('dashboard/export/pdf', [DashboardController::class, 'exportPdf'])->name('dashboard.export.pdf');
 
     Route::resource('categories', CategoryController::class)
         ->only(['index', 'store', 'update', 'destroy']);
@@ -45,6 +47,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('students/search', [StudentController::class, 'search'])->name('students.search');
     Route::get('students/by-student-id', [StudentController::class, 'getByStudentId'])->name('students.by-student-id');
     Route::get('students/scan/{token}', [StudentController::class, 'getByQrToken'])->name('students.scan');
+    Route::get('students/export/pdf', [StudentController::class, 'exportBulkPdf'])->name('students.export-bulk-pdf');
+    Route::get('students/export/qr', [StudentController::class, 'exportBulkQrPdf'])->name('students.export-bulk-qr');
     Route::resource('students', StudentController::class)
         ->only(['index', 'store', 'update', 'destroy']);
     Route::prefix('students')->name('students.')->group(function () {
@@ -53,6 +57,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{student}/transactions', [StudentController::class, 'transactions'])->name('transactions');
         Route::get('/{student}/balance', [StudentController::class, 'getBalance'])->name('balance');
         Route::get('/{student}/qr-code', [StudentController::class, 'qrCode'])->name('qr-code');
+        Route::get('/{student}/export-pdf', [StudentController::class, 'exportSinglePdf'])->name('export-single-pdf');
+        Route::get('/{student}/export-qr', [StudentController::class, 'exportSingleQrPdf'])->name('export-single-qr');
     });
 
     // Student Dashboard routes
@@ -61,6 +67,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/search', [StudentDashboardController::class, 'searchStudent'])->name('search');
         Route::get('/{student}', [StudentDashboardController::class, 'show'])->name('show');
         Route::get('/{student}/orders', [StudentDashboardController::class, 'getOrders'])->name('orders');
+        Route::get('/{student}/export/excel', [StudentDashboardController::class, 'exportExcel'])->name('export.excel');
+        Route::get('/{student}/export/pdf', [StudentDashboardController::class, 'exportPdf'])->name('export.pdf');
     });
 });
 

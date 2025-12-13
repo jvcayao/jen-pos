@@ -25,8 +25,6 @@ import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { endOfMonth, format, startOfMonth, subDays, subMonths } from 'date-fns';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import {
     Calendar,
     ChevronLeft,
@@ -61,7 +59,6 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
-import * as XLSX from 'xlsx';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -153,6 +150,7 @@ interface Filters {
     search: string;
     status: string;
     payment_method: string;
+    wallet_type: string;
 }
 
 interface DashboardProps {
@@ -434,6 +432,28 @@ function OrdersTable({
                             <SelectItem value="card">Card</SelectItem>
                         </SelectContent>
                     </Select>
+                    <Select
+                        value={filters.wallet_type || 'all'}
+                        onValueChange={(value) =>
+                            onFilter(
+                                'wallet_type',
+                                value === 'all' ? '' : value,
+                            )
+                        }
+                    >
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Wallet Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Wallet Types</SelectItem>
+                            <SelectItem value="subscribe">
+                                Subscribe Wallet
+                            </SelectItem>
+                            <SelectItem value="non-subscribe">
+                                Non-Subscribe Wallet
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 <div className="overflow-x-auto rounded-md border">
@@ -664,7 +684,6 @@ export default function Dashboard({
     studentStats,
 }: DashboardProps) {
     const chartRef = useRef<HTMLDivElement>(null);
-    const [exporting, setExporting] = useState(false);
 
     const handleDateChange = (startDate: string, endDate: string) => {
         router.get(
@@ -682,174 +701,30 @@ export default function Dashboard({
         );
     };
 
-    const exportToExcel = async () => {
-        setExporting(true);
-        try {
-            const response = await fetch(
-                `/dashboard/export?start_date=${filters.start_date}&end_date=${filters.end_date}&status=${filters.status}&payment_method=${filters.payment_method}`,
-            );
-            const data = await response.json();
-
-            const wb = XLSX.utils.book_new();
-
-            // Orders sheet
-            const ordersWs = XLSX.utils.json_to_sheet(data.orders);
-            XLSX.utils.book_append_sheet(wb, ordersWs, 'Orders');
-
-            // Summary sheet
-            const summaryData = [
-                ['Sales Report Summary'],
-                ['Period', data.summary.period],
-                ['Total Sales', data.summary.total_sales],
-                ['Total Orders', data.summary.total_orders],
-                ['Total VAT', data.summary.total_vat],
-            ];
-            const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
-            XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
-
-            // Top Products sheet
-            const topProductsWs = XLSX.utils.json_to_sheet(
-                topProducts.map((p) => ({
-                    'Product Name': p.name,
-                    'Quantity Sold': p.quantity,
-                    'Total Sales': p.sales,
-                })),
-            );
-            XLSX.utils.book_append_sheet(wb, topProductsWs, 'Top Products');
-
-            XLSX.writeFile(
-                wb,
-                `sales-report-${filters.start_date}-to-${filters.end_date}.xlsx`,
-            );
-        } catch (error) {
-            console.error('Export failed:', error);
-        }
-        setExporting(false);
+    const exportToExcel = () => {
+        const params = new URLSearchParams({
+            start_date: filters.start_date,
+            end_date: filters.end_date,
+            ...(filters.status && { status: filters.status }),
+            ...(filters.payment_method && {
+                payment_method: filters.payment_method,
+            }),
+            ...(filters.wallet_type && { wallet_type: filters.wallet_type }),
+        });
+        window.location.href = `/dashboard/export/excel?${params.toString()}`;
     };
 
-    const exportToPDF = async () => {
-        setExporting(true);
-        try {
-            const response = await fetch(
-                `/dashboard/export?start_date=${filters.start_date}&end_date=${filters.end_date}&status=${filters.status}&payment_method=${filters.payment_method}`,
-            );
-            const data = await response.json();
-
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = pdf.internal.pageSize.getWidth();
-
-            // Header
-            pdf.setFontSize(20);
-            pdf.text('Sales Report', pageWidth / 2, 20, { align: 'center' });
-            pdf.setFontSize(12);
-            pdf.text(data.summary.period, pageWidth / 2, 28, {
-                align: 'center',
-            });
-
-            // Summary
-            pdf.setFontSize(14);
-            pdf.text('Summary', 14, 45);
-            pdf.setFontSize(10);
-            pdf.text(
-                `Total Sales: ${formatCurrency(data.summary.total_sales)}`,
-                14,
-                55,
-            );
-            pdf.text(`Total Orders: ${data.summary.total_orders}`, 14, 62);
-            pdf.text(
-                `Total VAT: ${formatCurrency(data.summary.total_vat)}`,
-                14,
-                69,
-            );
-
-            // Top Products
-            pdf.setFontSize(14);
-            pdf.text('Top Products', 14, 85);
-            pdf.setFontSize(10);
-            let y = 95;
-            topProducts.forEach((product, index) => {
-                pdf.text(
-                    `${index + 1}. ${product.name} - ${product.quantity} sold - ${formatCurrency(product.sales)}`,
-                    14,
-                    y,
-                );
-                y += 7;
-            });
-
-            // Capture chart if available
-            if (chartRef.current) {
-                const canvas = await html2canvas(chartRef.current, {
-                    scale: 2,
-                });
-                const imgData = canvas.toDataURL('image/png');
-                const imgWidth = pageWidth - 28;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                pdf.addPage();
-                pdf.setFontSize(14);
-                pdf.text('Sales Chart', 14, 20);
-                pdf.addImage(imgData, 'PNG', 14, 30, imgWidth, imgHeight);
-            }
-
-            // Orders Table
-            pdf.addPage();
-            pdf.setFontSize(14);
-            pdf.text('Orders', 14, 20);
-            pdf.setFontSize(8);
-
-            const headers = [
-                'Order ID',
-                'Customer',
-                'Items',
-                'Total',
-                'Status',
-                'Payment',
-                'Date',
-            ];
-            let yPos = 30;
-            const colWidths = [30, 35, 15, 25, 20, 25, 30];
-
-            // Table header
-            pdf.setFillColor(240, 240, 240);
-            pdf.rect(14, yPos - 5, pageWidth - 28, 8, 'F');
-            let xPos = 14;
-            headers.forEach((header, i) => {
-                pdf.text(header, xPos, yPos);
-                xPos += colWidths[i];
-            });
-            yPos += 8;
-
-            // Table rows
-            data.orders
-                .slice(0, 30)
-                .forEach((order: Record<string, unknown>) => {
-                    if (yPos > 280) {
-                        pdf.addPage();
-                        yPos = 20;
-                    }
-                    xPos = 14;
-                    const rowData = [
-                        String(order['Order ID']).slice(0, 8) + '...',
-                        String(order['Customer']).slice(0, 15),
-                        String(order['Items']),
-                        formatCurrency(order['Total'] as number),
-                        String(order['Status']),
-                        String(order['Payment Method']),
-                        String(order['Date']).slice(0, 10),
-                    ];
-                    rowData.forEach((cell, i) => {
-                        pdf.text(cell, xPos, yPos);
-                        xPos += colWidths[i];
-                    });
-                    yPos += 6;
-                });
-
-            pdf.save(
-                `sales-report-${filters.start_date}-to-${filters.end_date}.pdf`,
-            );
-        } catch (error) {
-            console.error('Export failed:', error);
-        }
-        setExporting(false);
+    const exportToPDF = () => {
+        const params = new URLSearchParams({
+            start_date: filters.start_date,
+            end_date: filters.end_date,
+            ...(filters.status && { status: filters.status }),
+            ...(filters.payment_method && {
+                payment_method: filters.payment_method,
+            }),
+            ...(filters.wallet_type && { wallet_type: filters.wallet_type }),
+        });
+        window.location.href = `/dashboard/export/pdf?${params.toString()}`;
     };
 
     return (
@@ -867,9 +742,9 @@ export default function Dashboard({
                         />
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" disabled={exporting}>
+                                <Button variant="outline">
                                     <Download className="mr-2 h-4 w-4" />
-                                    {exporting ? 'Exporting...' : 'Export'}
+                                    Export
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-48" align="end">
