@@ -445,7 +445,9 @@ function OrdersTable({
                             <SelectValue placeholder="Wallet Type" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">All Wallet Types</SelectItem>
+                            <SelectItem value="all">
+                                All Wallet Types
+                            </SelectItem>
                             <SelectItem value="subscribe">
                                 Subscribe Wallet
                             </SelectItem>

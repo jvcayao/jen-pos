@@ -8,6 +8,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -28,7 +29,6 @@ import {
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     ArrowDownCircle,
     ArrowUpCircle,
@@ -1155,10 +1155,7 @@ export default function StudentsIndex({ students, filters }: StudentPageProps) {
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            onClick={toggleSelectionMode}
-                        >
+                        <Button variant="outline" onClick={toggleSelectionMode}>
                             {selectionMode ? (
                                 <>
                                     <X className="mr-1 h-4 w-4" />
@@ -1273,7 +1270,9 @@ export default function StudentsIndex({ students, filters }: StudentPageProps) {
                                 <StudentCard
                                     key={student.id}
                                     student={student}
-                                    isSelected={selectedIds.includes(student.id)}
+                                    isSelected={selectedIds.includes(
+                                        student.id,
+                                    )}
                                     onSelect={handleSelect}
                                     selectionMode={selectionMode}
                                 />

@@ -8,9 +8,9 @@ use App\Models\Order;
 use App\Models\Student;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use App\Exports\DashboardExport;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Exports\DashboardExport;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
 class DashboardController extends Controller
@@ -372,7 +372,7 @@ class DashboardController extends Controller
             ? Carbon::parse($request->input('end_date'))->endOfDay()
             : Carbon::now()->endOfDay();
 
-        $filename = 'sales-report-' . $startDate->format('Y-m-d') . '-to-' . $endDate->format('Y-m-d') . '.xlsx';
+        $filename = 'sales-report-'.$startDate->format('Y-m-d').'-to-'.$endDate->format('Y-m-d').'.xlsx';
 
         return Excel::download(
             new DashboardExport(
@@ -455,8 +455,8 @@ class DashboardController extends Controller
             ])
             ->toArray();
 
-        $period = $startDate->format('M d, Y') . ' - ' . $endDate->format('M d, Y');
-        $filename = 'sales-report-' . $startDate->format('Y-m-d') . '-to-' . $endDate->format('Y-m-d') . '.pdf';
+        $period = $startDate->format('M d, Y').' - '.$endDate->format('M d, Y');
+        $filename = 'sales-report-'.$startDate->format('Y-m-d').'-to-'.$endDate->format('Y-m-d').'.pdf';
 
         $pdf = Pdf::loadView('exports.dashboard-pdf', [
             'summary' => $summary,

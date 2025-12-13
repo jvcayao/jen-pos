@@ -7,10 +7,10 @@ use Inertia\Inertia;
 use Inertia\Response;
 use App\Models\Student;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 use App\Exports\StudentExport;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
 class StudentDashboardController extends Controller
@@ -278,9 +278,9 @@ class StudentDashboardController extends Controller
             ? Carbon::parse($request->input('end_date'))->endOfDay()
             : null;
 
-        $filename = 'student-' . $student->student_id . '-report';
+        $filename = 'student-'.$student->student_id.'-report';
         if ($startDate && $endDate) {
-            $filename .= '-' . $startDate->format('Y-m-d') . '-to-' . $endDate->format('Y-m-d');
+            $filename .= '-'.$startDate->format('Y-m-d').'-to-'.$endDate->format('Y-m-d');
         }
         $filename .= '.xlsx';
 
@@ -322,12 +322,12 @@ class StudentDashboardController extends Controller
 
         $period = null;
         if ($startDate && $endDate) {
-            $period = $startDate->format('M d, Y') . ' - ' . $endDate->format('M d, Y');
+            $period = $startDate->format('M d, Y').' - '.$endDate->format('M d, Y');
         }
 
-        $filename = 'student-' . $student->student_id . '-report';
+        $filename = 'student-'.$student->student_id.'-report';
         if ($startDate && $endDate) {
-            $filename .= '-' . $startDate->format('Y-m-d') . '-to-' . $endDate->format('Y-m-d');
+            $filename .= '-'.$startDate->format('Y-m-d').'-to-'.$endDate->format('Y-m-d');
         }
         $filename .= '.pdf';
 

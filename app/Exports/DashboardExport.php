@@ -10,15 +10,19 @@ use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
 class DashboardExport implements WithMultipleSheets
 {
     protected Carbon $startDate;
+
     protected Carbon $endDate;
+
     protected ?string $status;
+
     protected ?string $paymentMethod;
+
     protected ?string $walletType;
 
     public function __construct(
@@ -45,12 +49,16 @@ class DashboardExport implements WithMultipleSheets
     }
 }
 
-class SummarySheet implements FromCollection, WithTitle, WithHeadings, WithStyles
+class SummarySheet implements FromCollection, WithHeadings, WithStyles, WithTitle
 {
     protected Carbon $startDate;
+
     protected Carbon $endDate;
+
     protected ?string $status;
+
     protected ?string $paymentMethod;
+
     protected ?string $walletType;
 
     public function __construct(
@@ -89,7 +97,7 @@ class SummarySheet implements FromCollection, WithTitle, WithHeadings, WithStyle
 
         return collect([
             ['Metric', 'Value'],
-            ['Report Period', $this->startDate->format('M d, Y') . ' - ' . $this->endDate->format('M d, Y')],
+            ['Report Period', $this->startDate->format('M d, Y').' - '.$this->endDate->format('M d, Y')],
             ['Total Sales', number_format($totalSales, 2)],
             ['Total Orders', $totalOrders],
             ['Total VAT', number_format($totalVat, 2)],
@@ -116,12 +124,16 @@ class SummarySheet implements FromCollection, WithTitle, WithHeadings, WithStyle
     }
 }
 
-class OrdersSheet implements FromCollection, WithTitle, WithHeadings, WithStyles
+class OrdersSheet implements FromCollection, WithHeadings, WithStyles, WithTitle
 {
     protected Carbon $startDate;
+
     protected Carbon $endDate;
+
     protected ?string $status;
+
     protected ?string $paymentMethod;
+
     protected ?string $walletType;
 
     public function __construct(
@@ -207,9 +219,10 @@ class OrdersSheet implements FromCollection, WithTitle, WithHeadings, WithStyles
     }
 }
 
-class TopProductsSheet implements FromCollection, WithTitle, WithHeadings, WithStyles
+class TopProductsSheet implements FromCollection, WithHeadings, WithStyles, WithTitle
 {
     protected Carbon $startDate;
+
     protected Carbon $endDate;
 
     public function __construct(Carbon $startDate, Carbon $endDate)

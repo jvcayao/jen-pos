@@ -472,7 +472,9 @@ export default function StudentDashboardShow({
                                         width="100%"
                                         height="100%"
                                     >
-                                        <AreaChart data={analytics.spending_trend}>
+                                        <AreaChart
+                                            data={analytics.spending_trend}
+                                        >
                                             <defs>
                                                 <linearGradient
                                                     id="colorSpending"
@@ -553,7 +555,9 @@ export default function StudentDashboardShow({
                                     >
                                         <PieChart>
                                             <Pie
-                                                data={analytics.category_breakdown}
+                                                data={
+                                                    analytics.category_breakdown
+                                                }
                                                 cx="50%"
                                                 cy="50%"
                                                 innerRadius={50}
@@ -561,7 +565,10 @@ export default function StudentDashboardShow({
                                                 paddingAngle={5}
                                                 dataKey="total"
                                                 nameKey="category"
-                                                label={({ category, percent }) =>
+                                                label={({
+                                                    category,
+                                                    percent,
+                                                }) =>
                                                     `${category} ${((percent ?? 0) * 100).toFixed(0)}%`
                                                 }
                                             >
@@ -616,7 +623,10 @@ export default function StudentDashboardShow({
                                             strokeDasharray="3 3"
                                             className="stroke-muted"
                                         />
-                                        <XAxis type="number" className="text-xs" />
+                                        <XAxis
+                                            type="number"
+                                            className="text-xs"
+                                        />
                                         <YAxis
                                             dataKey="name"
                                             type="category"

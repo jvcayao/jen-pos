@@ -9,13 +9,15 @@ use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
 class StudentExport implements WithMultipleSheets
 {
     protected Student $student;
+
     protected ?Carbon $startDate;
+
     protected ?Carbon $endDate;
 
     public function __construct(Student $student, ?Carbon $startDate = null, ?Carbon $endDate = null)
@@ -35,7 +37,7 @@ class StudentExport implements WithMultipleSheets
     }
 }
 
-class StudentInfoSheet implements FromCollection, WithTitle, WithStyles
+class StudentInfoSheet implements FromCollection, WithStyles, WithTitle
 {
     protected Student $student;
 
@@ -73,10 +75,12 @@ class StudentInfoSheet implements FromCollection, WithTitle, WithStyles
     }
 }
 
-class StudentOrdersSheet implements FromCollection, WithTitle, WithHeadings, WithStyles
+class StudentOrdersSheet implements FromCollection, WithHeadings, WithStyles, WithTitle
 {
     protected Student $student;
+
     protected ?Carbon $startDate;
+
     protected ?Carbon $endDate;
 
     public function __construct(Student $student, ?Carbon $startDate, ?Carbon $endDate)
@@ -139,10 +143,12 @@ class StudentOrdersSheet implements FromCollection, WithTitle, WithHeadings, Wit
     }
 }
 
-class StudentTopItemsSheet implements FromCollection, WithTitle, WithHeadings, WithStyles
+class StudentTopItemsSheet implements FromCollection, WithHeadings, WithStyles, WithTitle
 {
     protected Student $student;
+
     protected ?Carbon $startDate;
+
     protected ?Carbon $endDate;
 
     public function __construct(Student $student, ?Carbon $startDate, ?Carbon $endDate)
