@@ -70,6 +70,10 @@ class HandleInertiaRequests extends Middleware
                         'slug' => $category->slug,
                     ])
                 : collect(),
+            'flash' => fn () => [
+                'message' => $request->session()->get('flash')['message'] ?? null,
+                'type' => $request->session()->get('flash')['type'] ?? null,
+            ],
         ];
     }
 }

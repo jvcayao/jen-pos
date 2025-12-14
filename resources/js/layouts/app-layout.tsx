@@ -1,3 +1,4 @@
+import { useFlashMessages } from '@/hooks/use-flash-messages';
 import AppLayoutTemplate from '@/layouts/app/app-sidebar-layout';
 import { type BreadcrumbItem } from '@/types';
 import { type ReactNode } from 'react';
@@ -12,6 +13,8 @@ export default function AppLayout({
     breadcrumbs,
     ...props
 }: AppLayoutProps) {
+    useFlashMessages();
+
     return (
         <AppLayoutTemplate breadcrumbs={breadcrumbs} {...props}>
             {children}

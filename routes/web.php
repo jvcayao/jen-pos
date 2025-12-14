@@ -48,7 +48,7 @@ Route::middleware(['auth', 'verified', 'store.selected'])->group(function () {
         Route::post('products/generate-codes', [ProductController::class, 'generateCodes'])->name('products.generate-codes');
     });
 
-    Route::get('/store/{store:slug}/menu/{taxonomy:slug?}', [MenuController::class, 'index'])->name('menu.index');
+    Route::get('/store/{store:slug}/menu/{taxonomy?}', [MenuController::class, 'index'])->name('menu.index');
 
     Route::prefix('cart')->name('cart.')->group(function () {
         Route::get('/', [CartController::class, 'index'])->name('index');

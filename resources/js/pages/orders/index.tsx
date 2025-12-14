@@ -51,6 +51,8 @@ interface Order {
     payment_method: string;
     is_payed: boolean;
     notes: string | null;
+    customer: string;
+    student_id: string | null;
     items: OrderItem[];
     created_at: string;
 }
@@ -108,6 +110,17 @@ function OrderCard({ order }: { order: Order }) {
                 </div>
             </CardHeader>
             <CardContent className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Customer</span>
+                    <span>
+                        {order.customer}
+                        {order.student_id && (
+                            <span className="ml-1 text-xs text-muted-foreground">
+                                ({order.student_id})
+                            </span>
+                        )}
+                    </span>
+                </div>
                 <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Items</span>
                     <span>{order.items.length} items</span>

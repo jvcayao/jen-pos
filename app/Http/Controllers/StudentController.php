@@ -19,9 +19,11 @@ use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use App\Http\Controllers\Traits\FlashesSessionData;
 
 class StudentController extends Controller
 {
+    use FlashesSessionData;
     public function __construct(
         protected CacheService $cacheService,
     ) {}
@@ -448,7 +450,10 @@ class StudentController extends Controller
         }
 
         if ($students->isEmpty()) {
-            return back()->with('error', 'No students to export');
+            return back()->with('flash', [
+                'type' => 'error',
+                'message' => 'No students to export',
+            ]);
         }
 
         return $this->generateStudentsPdf($students, $request->input('view', 'table'));
@@ -523,7 +528,10 @@ class StudentController extends Controller
         }
 
         if ($students->isEmpty()) {
-            return back()->with('error', 'No students to export');
+            return back()->with('flash', [
+                'type' => 'error',
+                'message' => 'No students to export',
+            ]);
         }
 
         return $this->generateQrPdf($students, $request->input('columns', 4));

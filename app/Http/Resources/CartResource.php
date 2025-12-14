@@ -51,12 +51,15 @@ class CartResource extends JsonResource
         // Subtotal (Net of VAT) = Total - VAT Amount
         $subtotal = $total - $vatAmount;
 
+        // Total quantity of all items in cart
+        $totalQuantity = collect($items)->sum('qty');
+
         return [
             'items' => $items,
             'subtotal' => round($subtotal, 2),
             'vat_amount' => round($vatAmount, 2),
             'total' => round($total, 2),
-            'count' => count($items),
+            'count' => $totalQuantity,
             'tax_rate' => $taxRate,
         ];
     }

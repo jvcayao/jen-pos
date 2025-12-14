@@ -20,12 +20,17 @@ class MenuController extends Controller
         protected CacheService $cacheService,
     ) {}
 
-    public function index(Request $request, Store $store, ?TaxonomyModel $taxonomy = null): Response
+    public function index(Request $request, Store $store, ?string $taxonomy = null): Response
     {
         // Set the store in app container for global scopes to work
         app()->instance('current.store', $store);
 
-        $categoryId = $taxonomy?->id;
+        // Manually resolve taxonomy scoped to the current store
+        $taxonomyModel = $taxonomy
+            ? TaxonomyModel::where('store_id', $store->id)->where('slug', $taxonomy)->first()
+            : null;
+
+        $categoryId = $taxonomyModel?->id;
         $search = $request->string('search')->toString();
 
         // Get products (cached when no search, fresh when searching)
@@ -33,18 +38,18 @@ class MenuController extends Controller
             $products = $this->cacheService->remember(
                 $this->cacheService->getProductsKey($store->id, $categoryId),
                 CacheService::TTL_LONG,
-                fn () => $this->getProducts($store, $taxonomy, null)
+                fn () => $this->getProducts($store, $taxonomyModel, null)
             );
         } else {
             // Don't cache search results - they're too varied
-            $products = $this->getProducts($store, $taxonomy, $search);
+            $products = $this->getProducts($store, $taxonomyModel, $search);
         }
 
         // Get categories (cached)
         $categories = $this->cacheService->remember(
             $this->cacheService->getCategoryChildrenKey($store->id, $categoryId),
             CacheService::TTL_VERY_LONG,
-            fn () => $this->getSubCategories($store, $taxonomy)
+            fn () => $this->getSubCategories($store, $taxonomyModel)
         );
 
         $cart = $this->getCartData();

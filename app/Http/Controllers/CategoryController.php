@@ -11,9 +11,11 @@ use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
 use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
+use App\Http\Controllers\Traits\FlashesSessionData;
 
 class CategoryController extends Controller
 {
+    use FlashesSessionData;
     public function index(): Response
     {
         $categories = Taxonomy::tree(TaxonomyType::Category)

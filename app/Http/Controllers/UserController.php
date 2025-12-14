@@ -10,9 +10,11 @@ use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use App\Http\Controllers\Traits\FlashesSessionData;
 
 class UserController extends Controller
 {
+    use FlashesSessionData;
     public function index(Request $request)
     {
         $user = $request->user();
@@ -95,7 +97,10 @@ class UserController extends Controller
         $newUser->stores()->attach($validated['store_ids']);
         $newUser->assignRole($validated['role']);
 
-        return back()->with('success', 'User created successfully.');
+        return back()->with('flash', [
+            'type' => 'success',
+            'message' => 'User created successfully.',
+        ]);
     }
 
     public function update(Request $request, User $targetUser)
@@ -140,7 +145,10 @@ class UserController extends Controller
         $targetUser->stores()->sync($validated['store_ids']);
         $targetUser->syncRoles([$validated['role']]);
 
-        return back()->with('success', 'User updated successfully.');
+        return back()->with('flash', [
+            'type' => 'success',
+            'message' => 'User updated successfully.',
+        ]);
     }
 
     public function destroy(Request $request, User $targetUser)
@@ -172,6 +180,9 @@ class UserController extends Controller
         $targetUser->stores()->detach();
         $targetUser->delete();
 
-        return back()->with('success', 'User deleted successfully.');
+        return back()->with('flash', [
+            'type' => 'success',
+            'message' => 'User deleted successfully.',
+        ]);
     }
 }

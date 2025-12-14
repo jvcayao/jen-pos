@@ -27,6 +27,11 @@ export interface Auth {
     permissions: string[];
 }
 
+export interface FlashMessage {
+    message: string | null;
+    type: 'success' | 'error' | 'warning' | 'info' | null;
+}
+
 export interface SharedData {
     name: string;
     auth: Auth;
@@ -35,5 +40,6 @@ export interface SharedData {
     sidebarOpen: boolean;
     navigation: NavItem[];
     quote?: Quote;
+    flash: FlashMessage;
     [key: string]: unknown;
 }

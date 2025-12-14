@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\Store;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Binafy\LaravelCart\Models\Cart;
@@ -12,9 +13,11 @@ use Illuminate\Http\RedirectResponse;
 use App\Http\Requests\AddToCartRequest;
 use App\Http\Requests\UpdateCartRequest;
 use App\Http\Requests\RemoveFromCartRequest;
+use App\Http\Controllers\Traits\FlashesSessionData;
 
 class CartController extends Controller
 {
+    use FlashesSessionData;
     public function index(): Response
     {
         $cart = $this->getCartData();
@@ -168,9 +171,19 @@ class CartController extends Controller
         ]);
     }
 
-    public function checkout(): Response
+    public function checkout(): Response|RedirectResponse
     {
         $cart = $this->getCartData();
+
+        // Guard: Redirect if cart is empty (order may have been processed)
+        if (empty($cart['items']) || $cart['count'] === 0) {
+            $store = Store::find(session('current_store_id'));
+
+            return redirect()->route('menu.index', ['store' => $store?->slug ?? 'default'])->with('flash', [
+                'type' => 'error',
+                'message' => 'Your cart is empty. Please add items before checkout.',
+            ]);
+        }
 
         return Inertia::render('checkout/index', ['cart' => $cart]);
     }

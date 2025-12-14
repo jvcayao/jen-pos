@@ -16,12 +16,15 @@ use Illuminate\Support\Facades\DB;
 use Binafy\LaravelCart\Models\Cart;
 use Illuminate\Http\RedirectResponse;
 use App\Http\Requests\CreateOrderRequest;
+use App\Http\Controllers\Traits\FlashesSessionData;
 
 class OrderController extends Controller
 {
+    use FlashesSessionData;
+
     public function index(Request $request): Response
     {
-        $orders = Order::with(['items.product', 'user'])
+        $orders = Order::with(['items.product', 'user', 'student'])
             ->where('user_id', auth()->id())
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
             ->when($request->filled('search'), fn ($q) => $q->where('uuid', 'like', '%'.$request->search.'%'))
@@ -37,6 +40,8 @@ class OrderController extends Controller
                 'payment_method' => $order->payment_method,
                 'is_payed' => $order->is_payed,
                 'notes' => $order->notes,
+                'customer' => $order->student ? $order->student->full_name : 'Guest',
+                'student_id' => $order->student?->student_id,
                 'items' => $order->items->map(fn ($item) => [
                     'id' => $item->id,
                     'name' => $item->item,
@@ -56,7 +61,7 @@ class OrderController extends Controller
 
     public function show(Order $order): Response
     {
-        $order->load(['items.product', 'user', 'cashier']);
+        $order->load(['items.product', 'user', 'cashier', 'student']);
 
         if ($order->user_id !== auth()->id()) {
             abort(403);
@@ -65,6 +70,9 @@ class OrderController extends Controller
         // VAT-inclusive: Subtotal (Net of VAT) = Total + Discount - VAT is already included
         // For display: show Total (VAT-inclusive), VAT Amount, and Vatable Sales (Net of VAT)
         $vatableSales = ($order->total + $order->discount) - $order->vat;
+
+        // Customer: show student name if assigned, otherwise "Guest"
+        $customerName = $order->student ? $order->student->full_name : 'Guest';
 
         return Inertia::render('orders/show', [
             'order' => [
@@ -78,7 +86,8 @@ class OrderController extends Controller
                 'payment_method' => $order->payment_method,
                 'is_payed' => $order->is_payed,
                 'notes' => $order->notes,
-                'customer' => $order->user?->name ?? 'Walk-in',
+                'customer' => $customerName,
+                'student_id' => $order->student?->student_id,
                 'cashier' => $order->cashier?->name ?? 'System',
                 'items' => $order->items->map(fn ($item) => [
                     'id' => $item->id,

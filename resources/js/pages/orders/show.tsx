@@ -37,6 +37,7 @@ interface Order {
     is_payed: boolean;
     notes: string | null;
     customer: string;
+    student_id: string | null;
     cashier: string;
     items: OrderItem[];
     created_at: string;
@@ -104,7 +105,7 @@ export default function OrderShow({ order }: OrderShowProps) {
                 <div class="divider"></div>
                 <div class="info"><strong>Order #:</strong> ${order.uuid.slice(0, 8).toUpperCase()}</div>
                 <div class="info"><strong>Date:</strong> ${order.created_at}</div>
-                <div class="info"><strong>Customer:</strong> ${order.customer}</div>
+                <div class="info"><strong>Customer:</strong> ${order.customer}${order.student_id ? ` (${order.student_id})` : ''}</div>
                 <div class="info"><strong>Cashier:</strong> ${order.cashier}</div>
                 <div class="info"><strong>Payment:</strong> ${order.payment_method?.toUpperCase() || 'N/A'}</div>
                 <div class="divider"></div>
@@ -260,6 +261,11 @@ export default function OrderShow({ order }: OrderShowProps) {
                                         <p className="font-medium">
                                             {order.customer}
                                         </p>
+                                        {order.student_id && (
+                                            <p className="text-xs text-muted-foreground">
+                                                ID: {order.student_id}
+                                            </p>
+                                        )}
                                     </div>
                                     <div>
                                         <p className="text-muted-foreground">
