@@ -2,10 +2,11 @@
 
 namespace App\Http\Middleware;
 
-use Inertia\Middleware;
-use Illuminate\Http\Request;
-use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
 use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
+use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
+use App\Models\Store;
+use Illuminate\Http\Request;
+use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -37,23 +38,38 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $currentStoreId = session('current_store_id');
+        $currentStore = $currentStoreId ? Store::find($currentStoreId) : null;
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+                'permissions' => $user ? $user->getAllPermissions()->pluck('name')->values()->all() : [],
             ],
-            'sidebarOpen' => !$request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'navigation' => Taxonomy::tree(TaxonomyType::Category)
-                ->map(function ($category) {
-                    return [
+            'currentStore' => $currentStore ? [
+                'id' => $currentStore->id,
+                'name' => $currentStore->name,
+                'slug' => $currentStore->slug,
+                'code' => $currentStore->code,
+            ] : null,
+            'canSwitchStore' => $user && $user->hasMultipleStores(),
+            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'navigation' => $currentStore
+                ? Taxonomy::where('store_id', $currentStore->id)
+                    ->where('type', TaxonomyType::Category->value)
+                    ->whereNull('parent_id')
+                    ->orderBy('name')
+                    ->get()
+                    ->map(fn ($category) => [
                         'id' => $category->id,
                         'title' => $category->name,
-                        'href' => route('menu.index', $category->slug),
+                        'href' => route('menu.index', ['store' => $currentStore->slug, 'taxonomy' => $category->slug]),
                         'slug' => $category->slug,
-
-                    ];
-                }),
+                    ])
+                : collect(),
         ];
     }
 }

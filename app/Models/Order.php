@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Support\Str;
+use App\Traits\BelongsToStore;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,9 +11,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Order extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToStore;
 
     protected $fillable = [
+        'store_id',
         'uuid',
         'type',
         'user_id',

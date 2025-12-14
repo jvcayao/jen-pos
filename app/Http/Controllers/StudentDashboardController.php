@@ -103,6 +103,40 @@ class StudentDashboardController extends Controller
         $totalOrders = (clone $baseQuery)->count();
         $averageOrderValue = $totalOrders > 0 ? $totalSpent / $totalOrders : 0;
 
+        // Payment method breakdown
+        $paymentMethodQuery = $student->orders()
+            ->where('status', 'confirm')
+            ->where('is_void', false);
+
+        if ($startDate && $endDate) {
+            $paymentMethodQuery->whereBetween('created_at', [$startDate, $endDate]);
+        }
+
+        $paymentMethodBreakdown = $paymentMethodQuery
+            ->select(
+                'payment_method',
+                'wallet_type',
+                DB::raw('SUM(total) as total'),
+                DB::raw('COUNT(*) as orders')
+            )
+            ->groupBy('payment_method', 'wallet_type')
+            ->get()
+            ->map(function ($item) {
+                $method = ucfirst($item->payment_method ?? 'Unknown');
+                if ($item->payment_method === 'wallet' && $item->wallet_type) {
+                    $method = $item->wallet_type === 'subscribe' ? 'Subscribe Wallet' : 'Non-Subscribe Wallet';
+                }
+
+                return [
+                    'method' => $method,
+                    'payment_method' => $item->payment_method,
+                    'wallet_type' => $item->wallet_type,
+                    'total' => round($item->total, 2),
+                    'orders' => $item->orders,
+                ];
+            })
+            ->toArray();
+
         // Monthly spending trend (last 6 months or within date range)
         $spendingTrendQuery = $student->orders()
             ->where('status', 'confirm')
@@ -202,6 +236,7 @@ class StudentDashboardController extends Controller
             'total_spent' => round($totalSpent, 2),
             'total_orders' => $totalOrders,
             'average_order_value' => round($averageOrderValue, 2),
+            'payment_method_breakdown' => $paymentMethodBreakdown,
             'spending_trend' => $spendingTrend,
             'category_breakdown' => $categoryBreakdown,
             'top_items' => $topItems,

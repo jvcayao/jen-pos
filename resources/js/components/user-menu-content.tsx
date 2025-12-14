@@ -12,8 +12,10 @@ import { index as ordersIndex } from '@/routes/orders';
 import { index as productsIndex } from '@/routes/products';
 import { edit as editProfile } from '@/routes/profile';
 import { index as studentsIndex } from '@/routes/students';
+import { index as usersIndex } from '@/routes/users';
 import { type User } from '@/types';
-import { Link, router } from '@inertiajs/react';
+import { SharedData } from '@/types/sharedData';
+import { Link, router, usePage } from '@inertiajs/react';
 import {
     FolderTree,
     GraduationCap,
@@ -22,6 +24,7 @@ import {
     Package,
     Receipt,
     Settings,
+    Users,
 } from 'lucide-react';
 
 interface UserMenuContentProps {
@@ -30,6 +33,11 @@ interface UserMenuContentProps {
 
 export function UserMenuContent({ user }: UserMenuContentProps) {
     const cleanup = useMobileNavigation();
+    const { auth } = usePage<SharedData>().props;
+    const permissions = auth.permissions || [];
+
+    const hasPermission = (permission: string) =>
+        permissions.includes(permission);
 
     const handleLogout = () => {
         cleanup();
@@ -48,18 +56,6 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                 <DropdownMenuItem asChild>
                     <Link
                         className="block w-full"
-                        href={dashboard.url()}
-                        as="button"
-                        prefetch
-                        onClick={cleanup}
-                    >
-                        <LayoutDashboard className="mr-2" />
-                        Dashboard
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                    <Link
-                        className="block w-full"
                         href={ordersIndex.url()}
                         as="button"
                         prefetch
@@ -69,42 +65,83 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                         Orders
                     </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                    <Link
-                        className="block w-full"
-                        href={studentsIndex.url()}
-                        as="button"
-                        prefetch
-                        onClick={cleanup}
-                    >
-                        <GraduationCap className="mr-2" />
-                        Students
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                    <Link
-                        className="block w-full"
-                        href={productsIndex.url()}
-                        as="button"
-                        prefetch
-                        onClick={cleanup}
-                    >
-                        <Package className="mr-2" />
-                        Products
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                    <Link
-                        className="block w-full"
-                        href={categoriesIndex.url()}
-                        as="button"
-                        prefetch
-                        onClick={cleanup}
-                    >
-                        <FolderTree className="mr-2" />
-                        Categories
-                    </Link>
-                </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+                {hasPermission('view-dashboard') && (
+                    <DropdownMenuItem asChild>
+                        <Link
+                            className="block w-full"
+                            href={dashboard.url()}
+                            as="button"
+                            prefetch
+                            onClick={cleanup}
+                        >
+                            <LayoutDashboard className="mr-2" />
+                            Dashboard
+                        </Link>
+                    </DropdownMenuItem>
+                )}
+                {hasPermission('manage-products') && (
+                    <DropdownMenuItem asChild>
+                        <Link
+                            className="block w-full"
+                            href={productsIndex.url()}
+                            as="button"
+                            prefetch
+                            onClick={cleanup}
+                        >
+                            <Package className="mr-2" />
+                            Products
+                        </Link>
+                    </DropdownMenuItem>
+                )}
+                {hasPermission('manage-categories') && (
+                    <DropdownMenuItem asChild>
+                        <Link
+                            className="block w-full"
+                            href={categoriesIndex.url()}
+                            as="button"
+                            prefetch
+                            onClick={cleanup}
+                        >
+                            <FolderTree className="mr-2" />
+                            Categories
+                        </Link>
+                    </DropdownMenuItem>
+                )}
+                {hasPermission('manage-students') && (
+                    <DropdownMenuItem asChild>
+                        <Link
+                            className="block w-full"
+                            href={studentsIndex.url()}
+                            as="button"
+                            prefetch
+                            onClick={cleanup}
+                        >
+                            <GraduationCap className="mr-2" />
+                            Students
+                        </Link>
+                    </DropdownMenuItem>
+                )}
+                {(hasPermission('manage-store-users') ||
+                    hasPermission('manage-users')) && (
+                    <DropdownMenuItem asChild>
+                        <Link
+                            className="block w-full"
+                            href={usersIndex.url()}
+                            as="button"
+                            prefetch
+                            onClick={cleanup}
+                        >
+                            <Users className="mr-2" />
+                            Users
+                        </Link>
+                    </DropdownMenuItem>
+                )}
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
                 <DropdownMenuItem asChild>
                     <Link
                         className="block w-full"

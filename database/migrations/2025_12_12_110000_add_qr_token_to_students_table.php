@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('students', function (Blueprint $table) {
-            $table->uuid('qr_token')->nullable()->unique()->after('wallet_type');
+            $table->uuid('qr_token')->nullable()->unique()->after('is_active');
         });
 
     }

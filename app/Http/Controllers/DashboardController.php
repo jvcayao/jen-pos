@@ -215,20 +215,48 @@ class DashboardController extends Controller
         $totalStudents = Student::count();
         $activeStudents = Student::where('is_active', true)->count();
 
-        // Total wallet balance across all students
-        $totalWalletBalance = DB::table('wallets')
-            ->where('holder_type', Student::class)
-            ->sum(DB::raw('balance / 100')); // Convert from cents if stored that way
+        // Count students by wallet type
+        $subscribeStudents = Student::where('wallet_type', Student::WALLET_SUBSCRIBE)->count();
+        $nonSubscribeStudents = Student::where('wallet_type', Student::WALLET_NON_SUBSCRIBE)->count();
 
-        // Wallet transactions in period
-        $walletOrders = Order::whereBetween('created_at', [$startDate, $endDate])
+        // Total wallet balance across all students (by type)
+        $subscribeWalletBalance = DB::table('wallets')
+            ->where('holder_type', Student::class)
+            ->where('slug', Student::WALLET_SUBSCRIBE)
+            ->sum(DB::raw('balance / 100'));
+
+        $nonSubscribeWalletBalance = DB::table('wallets')
+            ->where('holder_type', Student::class)
+            ->where('slug', Student::WALLET_NON_SUBSCRIBE)
+            ->sum(DB::raw('balance / 100'));
+
+        $totalWalletBalance = $subscribeWalletBalance + $nonSubscribeWalletBalance;
+
+        // Wallet transactions in period - by wallet type
+        $baseWalletQuery = Order::whereBetween('created_at', [$startDate, $endDate])
             ->where('status', 'confirm')
             ->where('is_void', false)
             ->where('payment_method', 'wallet')
             ->whereNotNull('student_id');
 
-        $walletSales = (clone $walletOrders)->sum('total');
-        $walletOrdersCount = (clone $walletOrders)->count();
+        $walletSales = (clone $baseWalletQuery)->sum('total');
+        $walletOrdersCount = (clone $baseWalletQuery)->count();
+
+        // Subscribe wallet sales
+        $subscribeWalletSales = (clone $baseWalletQuery)
+            ->where('wallet_type', 'subscribe')
+            ->sum('total');
+        $subscribeWalletOrdersCount = (clone $baseWalletQuery)
+            ->where('wallet_type', 'subscribe')
+            ->count();
+
+        // Non-subscribe wallet sales
+        $nonSubscribeWalletSales = (clone $baseWalletQuery)
+            ->where('wallet_type', 'non-subscribe')
+            ->sum('total');
+        $nonSubscribeWalletOrdersCount = (clone $baseWalletQuery)
+            ->where('wallet_type', 'non-subscribe')
+            ->count();
 
         // Top students by spending in period
         $topStudents = Order::whereBetween('created_at', [$startDate, $endDate])
@@ -256,9 +284,17 @@ class DashboardController extends Controller
         return [
             'total_students' => $totalStudents,
             'active_students' => $activeStudents,
+            'subscribe_students' => $subscribeStudents,
+            'non_subscribe_students' => $nonSubscribeStudents,
             'total_wallet_balance' => round((float) $totalWalletBalance, 2),
+            'subscribe_wallet_balance' => round((float) $subscribeWalletBalance, 2),
+            'non_subscribe_wallet_balance' => round((float) $nonSubscribeWalletBalance, 2),
             'wallet_sales' => round($walletSales, 2),
             'wallet_orders_count' => $walletOrdersCount,
+            'subscribe_wallet_sales' => round($subscribeWalletSales, 2),
+            'subscribe_wallet_orders_count' => $subscribeWalletOrdersCount,
+            'non_subscribe_wallet_sales' => round($nonSubscribeWalletSales, 2),
+            'non_subscribe_wallet_orders_count' => $nonSubscribeWalletOrdersCount,
             'top_students' => $topStudents,
         ];
     }

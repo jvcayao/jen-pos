@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 import { Form, Head } from '@inertiajs/react';
@@ -5,12 +7,33 @@ import { Form, Head } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
 
-export default function Register() {
+interface Store {
+    id: number;
+    name: string;
+    code: string;
+}
+
+interface Props {
+    stores: Store[];
+}
+
+export default function Register({ stores }: Props) {
+    const [selectedStores, setSelectedStores] = useState<number[]>([]);
+
+    const toggleStore = (storeId: number) => {
+        setSelectedStores((prev) =>
+            prev.includes(storeId)
+                ? prev.filter((id) => id !== storeId)
+                : [...prev, storeId],
+        );
+    };
+
     return (
         <AuthLayout
             title="Create an account"
@@ -22,6 +45,7 @@ export default function Register() {
                 resetOnSuccess={['password', 'password_confirmation']}
                 disableWhileProcessing
                 className="flex flex-col gap-6"
+                data={{ store_ids: selectedStores }}
             >
                 {({ processing, errors }) => (
                     <>
@@ -90,11 +114,48 @@ export default function Register() {
                                 />
                             </div>
 
+                            <div className="grid gap-2">
+                                <Label>Store Access</Label>
+                                <div className="rounded-md border p-3">
+                                    <div className="space-y-3">
+                                        {stores.map((storeItem) => (
+                                            <div
+                                                key={storeItem.id}
+                                                className="flex items-center gap-3"
+                                            >
+                                                <Checkbox
+                                                    id={`store-${storeItem.id}`}
+                                                    checked={selectedStores.includes(
+                                                        storeItem.id,
+                                                    )}
+                                                    onCheckedChange={() =>
+                                                        toggleStore(
+                                                            storeItem.id,
+                                                        )
+                                                    }
+                                                />
+                                                <Label
+                                                    htmlFor={`store-${storeItem.id}`}
+                                                    className="cursor-pointer font-normal"
+                                                >
+                                                    {storeItem.name}{' '}
+                                                    <span className="text-muted-foreground">
+                                                        ({storeItem.code})
+                                                    </span>
+                                                </Label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <InputError message={errors.store_ids} />
+                            </div>
+
                             <Button
                                 type="submit"
                                 className="mt-2 w-full"
                                 tabIndex={5}
                                 data-test="register-user-button"
+                                disabled={selectedStores.length === 0}
                             >
                                 {processing && <Spinner />}
                                 Create account

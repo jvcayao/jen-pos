@@ -120,10 +120,19 @@ interface TopItem {
     total: number;
 }
 
+interface PaymentMethodBreakdown {
+    method: string;
+    payment_method: string;
+    wallet_type: string | null;
+    total: number;
+    orders: number;
+}
+
 interface Analytics {
     total_spent: number;
     total_orders: number;
     average_order_value: number;
+    payment_method_breakdown: PaymentMethodBreakdown[];
     spending_trend: SpendingTrend[];
     category_breakdown: CategoryBreakdown[];
     top_items: TopItem[];
@@ -454,6 +463,70 @@ export default function StudentDashboardShow({
                         </CardContent>
                     </Card>
                 </div>
+
+                {/* Payment Method Breakdown */}
+                {analytics.payment_method_breakdown.length > 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Spending by Payment Method</CardTitle>
+                            <CardDescription>
+                                Breakdown of spending by payment type
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                                {analytics.payment_method_breakdown.map(
+                                    (item) => (
+                                        <div
+                                            key={`${item.payment_method}-${item.wallet_type ?? 'default'}`}
+                                            className={`rounded-lg border p-4 ${
+                                                item.payment_method === 'wallet'
+                                                    ? item.wallet_type ===
+                                                      'subscribe'
+                                                        ? 'border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/20'
+                                                        : 'border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20'
+                                                    : item.payment_method ===
+                                                        'cash'
+                                                      ? 'border-amber-200 bg-amber-50/50 dark:border-amber-900 dark:bg-amber-950/20'
+                                                      : item.payment_method ===
+                                                          'gcash'
+                                                        ? 'border-indigo-200 bg-indigo-50/50 dark:border-indigo-900 dark:bg-indigo-950/20'
+                                                        : 'border-gray-200 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-900/20'
+                                            }`}
+                                        >
+                                            <p className="text-sm font-medium text-muted-foreground">
+                                                {item.method}
+                                            </p>
+                                            <p
+                                                className={`text-2xl font-bold ${
+                                                    item.payment_method ===
+                                                    'wallet'
+                                                        ? item.wallet_type ===
+                                                          'subscribe'
+                                                            ? 'text-blue-600'
+                                                            : 'text-green-600'
+                                                        : item.payment_method ===
+                                                            'cash'
+                                                          ? 'text-amber-600'
+                                                          : item.payment_method ===
+                                                              'gcash'
+                                                            ? 'text-indigo-600'
+                                                            : ''
+                                                }`}
+                                            >
+                                                {formatCurrency(item.total)}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {item.orders} order
+                                                {item.orders !== 1 ? 's' : ''}
+                                            </p>
+                                        </div>
+                                    ),
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Charts Row */}
                 <div className="grid gap-4 lg:grid-cols-2">

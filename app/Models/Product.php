@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToStore;
 use Binafy\LaravelCart\Cartable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,9 +13,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Product extends Model implements Cartable
 {
-    use HasFactory, HasTaxonomy;
+    use HasFactory, HasTaxonomy, BelongsToStore;
 
     protected $fillable = [
+        'store_id',
         'name',
         'description',
         'slug',

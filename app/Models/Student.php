@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Support\Str;
+use App\Traits\BelongsToStore;
 use Bavix\Wallet\Interfaces\Wallet;
 use Bavix\Wallet\Traits\HasWallets;
 use Bavix\Wallet\Traits\HasWalletFloat;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Student extends Model implements Wallet, WalletFloat
 {
-    use HasFactory, HasWalletFloat, HasWallets;
+    use HasFactory, HasWalletFloat, HasWallets, BelongsToStore;
 
     // Wallet slugs
     public const WALLET_SUBSCRIBE = 'subscribe';
@@ -21,6 +22,7 @@ class Student extends Model implements Wallet, WalletFloat
     public const WALLET_NON_SUBSCRIBE = 'non-subscribe';
 
     protected $fillable = [
+        'store_id',
         'student_id',
         'first_name',
         'last_name',

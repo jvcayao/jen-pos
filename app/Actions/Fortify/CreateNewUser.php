@@ -3,8 +3,8 @@
 namespace App\Actions\Fortify;
 
 use App\Models\User;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 class CreateNewUser implements CreatesNewUsers
@@ -14,7 +14,7 @@ class CreateNewUser implements CreatesNewUsers
     /**
      * Validate and create a newly registered user.
      *
-     * @param  array<string, string>  $input
+     * @param  array<string, mixed>  $input
      */
     public function create(array $input): User
     {
@@ -28,12 +28,22 @@ class CreateNewUser implements CreatesNewUsers
                 Rule::unique(User::class),
             ],
             'password' => $this->passwordRules(),
+            'store_ids' => ['required', 'array', 'min:1'],
+            'store_ids.*' => ['required', 'integer', 'exists:stores,id'],
         ])->validate();
 
-        return User::create([
+        $user = User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => $input['password'],
         ]);
+
+        // Attach stores to user
+        $user->stores()->attach($input['store_ids']);
+
+        // Assign default role (cashier)
+        $user->assignRole('cashier');
+
+        return $user;
     }
 }
