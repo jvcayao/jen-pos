@@ -8,6 +8,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -27,19 +28,24 @@ import {
 } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     ArrowDownCircle,
     ArrowUpCircle,
     ChevronLeft,
     ChevronRight,
+    Download,
+    Eye,
+    FileText,
     History,
     Pencil,
     Plus,
+    QrCode,
     Search,
     Trash2,
     User,
     Wallet,
+    X,
 } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 
@@ -61,7 +67,10 @@ interface Student {
     guardian_phone: string | null;
     address: string | null;
     is_active: boolean;
+    wallet_type: string | null;
     wallet_balance: number;
+    has_wallet: boolean;
+    qr_code_url: string;
     created_at: string;
 }
 
@@ -102,6 +111,7 @@ interface StudentFormData {
     guardian_phone: string;
     address: string;
     is_active: boolean;
+    wallet_type: string;
 }
 
 const formatCurrency = (value: number) => {
@@ -124,6 +134,7 @@ function getDefaultFormData(): StudentFormData {
         guardian_phone: '',
         address: '',
         is_active: true,
+        wallet_type: '',
     };
 }
 
@@ -140,6 +151,7 @@ function getFormDataFromStudent(student: Student): StudentFormData {
         guardian_phone: student.guardian_phone ?? '',
         address: student.address ?? '',
         is_active: student.is_active,
+        wallet_type: student.wallet_type ?? '',
     };
 }
 
@@ -264,28 +276,52 @@ function StudentFormFields({
                         }
                     />
                 </div>
-                {isEdit && (
-                    <div className="grid gap-2">
-                        <Label>Status</Label>
-                        <Select
-                            value={form.data.is_active ? 'active' : 'inactive'}
-                            onValueChange={(value) =>
-                                form.setData('is_active', value === 'active')
-                            }
-                        >
-                            <SelectTrigger>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="active">Active</SelectItem>
-                                <SelectItem value="inactive">
-                                    Inactive
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                )}
+                <div className="grid gap-2">
+                    <Label>Wallet Type</Label>
+                    <Select
+                        value={form.data.wallet_type || 'none'}
+                        onValueChange={(value) =>
+                            form.setData(
+                                'wallet_type',
+                                value === 'none' ? '' : value,
+                            )
+                        }
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select wallet type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">No Wallet</SelectItem>
+                            <SelectItem value="subscribe">
+                                Subscribe Wallet
+                            </SelectItem>
+                            <SelectItem value="non-subscribe">
+                                Non-Subscribe Wallet
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
+
+            {isEdit && (
+                <div className="grid gap-2">
+                    <Label>Status</Label>
+                    <Select
+                        value={form.data.is_active ? 'active' : 'inactive'}
+                        onValueChange={(value) =>
+                            form.setData('is_active', value === 'active')
+                        }
+                    >
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
 
             <div className="grid gap-2">
                 <Label>Address</Label>
@@ -469,12 +505,15 @@ function WalletModal({
     useEffect(() => {
         if (open) {
             setBalance(student.wallet_balance);
-            fetchTransactions();
+            if (student.wallet_type) {
+                fetchTransactions();
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, student.id]);
 
     const fetchTransactions = async () => {
+        if (!student.wallet_type) return;
         try {
             const response = await fetch(
                 `/students/${student.id}/transactions`,
@@ -492,7 +531,10 @@ function WalletModal({
         setLoading(true);
         router.post(
             `/students/${student.id}/deposit`,
-            { amount: parseFloat(amount), description },
+            {
+                amount: parseFloat(amount),
+                description,
+            },
             {
                 preserveScroll: true,
                 onSuccess: () => {
@@ -510,7 +552,10 @@ function WalletModal({
         setLoading(true);
         router.post(
             `/students/${student.id}/withdraw`,
-            { amount: parseFloat(amount), description },
+            {
+                amount: parseFloat(amount),
+                description,
+            },
             {
                 preserveScroll: true,
                 onSuccess: () => {
@@ -525,6 +570,9 @@ function WalletModal({
 
     if (!open) return null;
 
+    const walletTypeName =
+        student.wallet_type === 'subscribe' ? 'Subscribe' : 'Non-Subscribe';
+
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="max-w-lg">
@@ -538,138 +586,300 @@ function WalletModal({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 p-4">
-                    <div className="text-sm text-muted-foreground">
-                        Current Balance
+                {!student.wallet_type ? (
+                    <div className="rounded-lg bg-muted/50 p-6 text-center">
+                        <Wallet className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                            No wallet assigned to this student.
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            Edit the student to assign a wallet type.
+                        </p>
                     </div>
-                    <div className="text-3xl font-bold">
-                        {formatCurrency(balance)}
-                    </div>
-                </div>
-
-                <div className="flex gap-2">
-                    <Button
-                        variant={
-                            activeTab === 'deposit' ? 'default' : 'outline'
-                        }
-                        size="sm"
-                        onClick={() => setActiveTab('deposit')}
-                        className="flex-1"
-                    >
-                        <ArrowDownCircle className="mr-1 h-4 w-4" />
-                        Deposit
-                    </Button>
-                    <Button
-                        variant={
-                            activeTab === 'withdraw' ? 'default' : 'outline'
-                        }
-                        size="sm"
-                        onClick={() => setActiveTab('withdraw')}
-                        className="flex-1"
-                    >
-                        <ArrowUpCircle className="mr-1 h-4 w-4" />
-                        Withdraw
-                    </Button>
-                    <Button
-                        variant={
-                            activeTab === 'history' ? 'default' : 'outline'
-                        }
-                        size="sm"
-                        onClick={() => setActiveTab('history')}
-                        className="flex-1"
-                    >
-                        <History className="mr-1 h-4 w-4" />
-                        History
-                    </Button>
-                </div>
-
-                {(activeTab === 'deposit' || activeTab === 'withdraw') && (
-                    <div className="space-y-4">
-                        <div className="grid gap-2">
-                            <Label>Amount</Label>
-                            <Input
-                                type="number"
-                                min="1"
-                                step="0.01"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                placeholder="Enter amount"
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label>Description (optional)</Label>
-                            <Input
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="e.g., Weekly allowance"
-                            />
-                        </div>
-                        <Button
-                            className="w-full"
-                            onClick={
-                                activeTab === 'deposit'
-                                    ? handleDeposit
-                                    : handleWithdraw
-                            }
-                            disabled={loading || !amount}
-                        >
-                            {loading
-                                ? 'Processing...'
-                                : activeTab === 'deposit'
-                                  ? 'Deposit'
-                                  : 'Withdraw'}
-                        </Button>
-                    </div>
-                )}
-
-                {activeTab === 'history' && (
-                    <div className="max-h-64 space-y-2 overflow-y-auto">
-                        {transactions.length === 0 ? (
-                            <div className="py-8 text-center text-muted-foreground">
-                                No transactions yet
+                ) : (
+                    <>
+                        <div className="rounded-lg border-2 border-primary bg-primary/10 p-4">
+                            <div className="text-xs font-medium text-muted-foreground">
+                                {walletTypeName} Wallet Balance
                             </div>
-                        ) : (
-                            transactions.map((t) => (
-                                <div
-                                    key={t.id}
-                                    className="flex items-center justify-between rounded-lg border p-3"
-                                >
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            {t.type === 'deposit' ? (
-                                                <ArrowDownCircle className="h-4 w-4 text-green-600" />
-                                            ) : (
-                                                <ArrowUpCircle className="h-4 w-4 text-red-600" />
-                                            )}
-                                            <span className="font-medium capitalize">
-                                                {t.type}
-                                            </span>
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {t.meta?.description ||
-                                                t.created_at}
-                                        </div>
-                                    </div>
-                                    <div
-                                        className={`font-semibold ${t.type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}
-                                    >
-                                        {t.type === 'deposit' ? '+' : '-'}
-                                        {formatCurrency(Math.abs(t.amount))}
-                                    </div>
+                            <div className="text-2xl font-bold">
+                                {formatCurrency(balance)}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <Button
+                                variant={
+                                    activeTab === 'deposit'
+                                        ? 'default'
+                                        : 'outline'
+                                }
+                                size="sm"
+                                onClick={() => setActiveTab('deposit')}
+                                className="flex-1"
+                            >
+                                <ArrowDownCircle className="mr-1 h-4 w-4" />
+                                Deposit
+                            </Button>
+                            <Button
+                                variant={
+                                    activeTab === 'withdraw'
+                                        ? 'default'
+                                        : 'outline'
+                                }
+                                size="sm"
+                                onClick={() => setActiveTab('withdraw')}
+                                className="flex-1"
+                            >
+                                <ArrowUpCircle className="mr-1 h-4 w-4" />
+                                Withdraw
+                            </Button>
+                            <Button
+                                variant={
+                                    activeTab === 'history'
+                                        ? 'default'
+                                        : 'outline'
+                                }
+                                size="sm"
+                                onClick={() => setActiveTab('history')}
+                                className="flex-1"
+                            >
+                                <History className="mr-1 h-4 w-4" />
+                                History
+                            </Button>
+                        </div>
+
+                        {(activeTab === 'deposit' ||
+                            activeTab === 'withdraw') && (
+                            <div className="space-y-4">
+                                <div className="grid gap-2">
+                                    <Label>Amount</Label>
+                                    <Input
+                                        type="number"
+                                        min="1"
+                                        step="0.01"
+                                        value={amount}
+                                        onChange={(e) =>
+                                            setAmount(e.target.value)
+                                        }
+                                        placeholder="Enter amount"
+                                    />
                                 </div>
-                            ))
+                                <div className="grid gap-2">
+                                    <Label>Description (optional)</Label>
+                                    <Input
+                                        value={description}
+                                        onChange={(e) =>
+                                            setDescription(e.target.value)
+                                        }
+                                        placeholder="e.g., Weekly allowance"
+                                    />
+                                </div>
+                                <Button
+                                    className="w-full"
+                                    onClick={
+                                        activeTab === 'deposit'
+                                            ? handleDeposit
+                                            : handleWithdraw
+                                    }
+                                    disabled={loading || !amount}
+                                >
+                                    {loading
+                                        ? 'Processing...'
+                                        : activeTab === 'deposit'
+                                          ? 'Deposit'
+                                          : 'Withdraw'}
+                                </Button>
+                            </div>
                         )}
-                    </div>
+
+                        {activeTab === 'history' && (
+                            <div className="max-h-64 space-y-2 overflow-y-auto">
+                                {transactions.length === 0 ? (
+                                    <div className="py-8 text-center text-muted-foreground">
+                                        No transactions yet
+                                    </div>
+                                ) : (
+                                    transactions.map((t) => (
+                                        <div
+                                            key={t.id}
+                                            className="flex items-center justify-between rounded-lg border p-3"
+                                        >
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    {t.type === 'deposit' ? (
+                                                        <ArrowDownCircle className="h-4 w-4 text-green-600" />
+                                                    ) : (
+                                                        <ArrowUpCircle className="h-4 w-4 text-red-600" />
+                                                    )}
+                                                    <span className="font-medium capitalize">
+                                                        {t.type}
+                                                    </span>
+                                                </div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {t.meta?.description ||
+                                                        t.created_at}
+                                                </div>
+                                            </div>
+                                            <div
+                                                className={`font-semibold ${t.type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}
+                                            >
+                                                {t.type === 'deposit'
+                                                    ? '+'
+                                                    : '-'}
+                                                {formatCurrency(
+                                                    Math.abs(t.amount),
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </>
                 )}
             </DialogContent>
         </Dialog>
     );
 }
 
-function StudentCard({ student }: { student: Student }) {
+function StudentQrModal({
+    student,
+    open,
+    onClose,
+}: {
+    student: Student;
+    open: boolean;
+    onClose: () => void;
+}) {
+    const [qrSvg, setQrSvg] = useState('');
+    const [qrLoading, setQrLoading] = useState(false);
+    const [qrError, setQrError] = useState('');
+
+    useEffect(() => {
+        if (!open) {
+            setQrSvg('');
+            setQrError('');
+            return;
+        }
+
+        const controller = new AbortController();
+
+        const loadQr = async () => {
+            try {
+                setQrLoading(true);
+                setQrError('');
+                const response = await fetch(student.qr_code_url, {
+                    headers: {
+                        Accept: 'image/svg+xml',
+                    },
+                    signal: controller.signal,
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch QR');
+                }
+
+                const svg = await response.text();
+                setQrSvg(svg);
+            } catch (error) {
+                if (!controller.signal.aborted) {
+                    console.error('Failed to load QR code', error);
+                    setQrError('Unable to load QR code. Please try again.');
+                    setQrSvg('');
+                }
+            } finally {
+                if (!controller.signal.aborted) {
+                    setQrLoading(false);
+                }
+            }
+        };
+
+        loadQr();
+
+        return () => controller.abort();
+    }, [open, student.id, student.qr_code_url]);
+
+    if (!open) return null;
+
+    const qrSrc = `${student.qr_code_url}?cache=${student.id}`;
+
+    return (
+        <Dialog open={open} onOpenChange={onClose}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <QrCode className="h-5 w-5" />
+                        {student.full_name}
+                    </DialogTitle>
+                    <DialogDescription>
+                        Student ID: {student.student_id}
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="flex flex-col items-center gap-4">
+                    <div className="flex min-h-[12rem] w-full items-center justify-center rounded-xl border bg-white p-4">
+                        {qrLoading ? (
+                            <p className="text-sm text-muted-foreground">
+                                Loading QR code…
+                            </p>
+                        ) : qrError ? (
+                            <p className="text-sm text-red-600">{qrError}</p>
+                        ) : qrSvg ? (
+                            <div
+                                className="aspect-square w-full max-w-50 [&_svg]:h-full [&_svg]:w-full"
+                                dangerouslySetInnerHTML={{ __html: qrSvg }}
+                            />
+                        ) : null}
+                    </div>
+                    <p className="text-center text-sm text-muted-foreground">
+                        Scan this QR code during checkout to quickly select the
+                        student.
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                        <Button asChild variant="outline" size="sm">
+                            <a href={qrSrc} target="_blank" rel="noreferrer">
+                                Open SVG
+                            </a>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                                window.open(
+                                    `/students/${student.id}/export-qr`,
+                                    '_blank',
+                                )
+                            }
+                        >
+                            <Download className="mr-1 h-4 w-4" />
+                            Download PDF
+                        </Button>
+                        <Button variant="secondary" size="sm" onClick={onClose}>
+                            Close
+                        </Button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function StudentCard({
+    student,
+    isSelected,
+    onSelect,
+    selectionMode,
+}: {
+    student: Student;
+    isSelected: boolean;
+    onSelect: (id: number, selected: boolean) => void;
+    selectionMode: boolean;
+}) {
     const [editing, setEditing] = useState(false);
     const [walletOpen, setWalletOpen] = useState(false);
     const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+    const [qrOpen, setQrOpen] = useState(false);
     const form = useForm({});
 
     const doDelete = () => {
@@ -678,12 +888,27 @@ function StudentCard({ student }: { student: Student }) {
         });
     };
 
+    const handleExportPdf = () => {
+        window.open(`/students/${student.id}/export-pdf`, '_blank');
+    };
+
     return (
         <>
-            <Card className="group">
+            <Card
+                className={`group flex h-full flex-col transition-all ${isSelected ? 'ring-2 ring-primary' : ''}`}
+            >
                 <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
+                            {selectionMode && (
+                                <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={(checked) =>
+                                        onSelect(student.id, !!checked)
+                                    }
+                                    className="h-5 w-5"
+                                />
+                            )}
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                                 <User className="h-5 w-5 text-primary" />
                             </div>
@@ -705,50 +930,82 @@ function StudentCard({ student }: { student: Student }) {
                         </Badge>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="flex flex-1 flex-col space-y-3">
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                        {student.grade_level && (
-                            <div>
-                                <span className="text-muted-foreground">
-                                    Grade:{' '}
-                                </span>
-                                {student.grade_level}
-                            </div>
-                        )}
-                        {student.section && (
-                            <div>
-                                <span className="text-muted-foreground">
-                                    Section:{' '}
-                                </span>
-                                {student.section}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="rounded-lg bg-muted/50 p-3">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Wallet className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">
-                                    Wallet Balance
-                                </span>
-                            </div>
-                            <span className="font-semibold">
-                                {formatCurrency(student.wallet_balance)}
+                        <div>
+                            <span className="text-muted-foreground">
+                                Grade:{' '}
                             </span>
+                            {student.grade_level || '-'}
+                        </div>
+                        <div>
+                            <span className="text-muted-foreground">
+                                Section:{' '}
+                            </span>
+                            {student.section || '-'}
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between gap-2 pt-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setWalletOpen(true)}
-                        >
-                            <Wallet className="mr-1 h-4 w-4" />
-                            Manage Wallet
-                        </Button>
+                    <div className="space-y-2 rounded-lg bg-muted/50 p-3">
+                        <div className="flex items-center gap-2">
+                            <Wallet className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium text-muted-foreground">
+                                Wallet
+                            </span>
+                        </div>
+                        {student.wallet_type ? (
+                            <div className="text-sm">
+                                <div className="text-xs text-muted-foreground">
+                                    {student.wallet_type === 'subscribe'
+                                        ? 'Subscribe'
+                                        : 'Non-Subscribe'}{' '}
+                                    Wallet
+                                </div>
+                                <div className="font-semibold">
+                                    {formatCurrency(student.wallet_balance)}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-sm text-muted-foreground">
+                                No wallet assigned
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-2">
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setQrOpen(true)}
+                            >
+                                <QrCode className="mr-1 h-4 w-4" />
+                                QR Code
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setWalletOpen(true)}
+                            >
+                                <Wallet className="mr-1 h-4 w-4" />
+                                Wallet
+                            </Button>
+                            <Button variant="outline" size="sm" asChild>
+                                <Link href={`/student-dashboard/${student.id}`}>
+                                    <Eye className="mr-1 h-4 w-4" />
+                                    Dashboard
+                                </Link>
+                            </Button>
+                        </div>
                         <div className="flex gap-1">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleExportPdf}
+                                title="Export PDF"
+                            >
+                                <FileText className="h-4 w-4" />
+                            </Button>
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -779,6 +1036,11 @@ function StudentCard({ student }: { student: Student }) {
                 open={walletOpen}
                 onClose={() => setWalletOpen(false)}
             />
+            <StudentQrModal
+                student={student}
+                open={qrOpen}
+                onClose={() => setQrOpen(false)}
+            />
             <AlertDialog
                 open={confirmDeleteOpen}
                 title="Delete student?"
@@ -800,6 +1062,8 @@ export default function StudentsIndex({ students, filters }: StudentPageProps) {
     const [search, setSearch] = useState(filters?.search ?? '');
     const [status, setStatus] = useState(filters?.status ?? '');
     const [openCreate, setOpenCreate] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [selectionMode, setSelectionMode] = useState(false);
 
     useEffect(() => {
         const t = setTimeout(() => {
@@ -824,6 +1088,61 @@ export default function StudentsIndex({ students, filters }: StudentPageProps) {
         }
     };
 
+    const handleSelect = (id: number, selected: boolean) => {
+        setSelectedIds((prev) =>
+            selected ? [...prev, id] : prev.filter((i) => i !== id),
+        );
+    };
+
+    const handleSelectAll = () => {
+        if (selectedIds.length === students.data.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(students.data.map((s) => s.id));
+        }
+    };
+
+    const handleExportSelected = () => {
+        if (selectedIds.length === 0) return;
+        const idsParam = selectedIds.join(',');
+        window.open(`/students/export/pdf?ids=${idsParam}`, '_blank');
+    };
+
+    const handleExportAll = () => {
+        const params = new URLSearchParams();
+        if (search) params.set('search', search);
+        if (status) params.set('status', status);
+        const queryString = params.toString();
+        window.open(
+            `/students/export/pdf${queryString ? `?${queryString}` : ''}`,
+            '_blank',
+        );
+    };
+
+    const handleExportSelectedQr = () => {
+        if (selectedIds.length === 0) return;
+        const idsParam = selectedIds.join(',');
+        window.open(`/students/export/qr?ids=${idsParam}`, '_blank');
+    };
+
+    const handleExportAllQr = () => {
+        const params = new URLSearchParams();
+        if (search) params.set('search', search);
+        if (status) params.set('status', status);
+        const queryString = params.toString();
+        window.open(
+            `/students/export/qr${queryString ? `?${queryString}` : ''}`,
+            '_blank',
+        );
+    };
+
+    const toggleSelectionMode = () => {
+        setSelectionMode(!selectionMode);
+        if (selectionMode) {
+            setSelectedIds([]);
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Students" />
@@ -835,11 +1154,80 @@ export default function StudentsIndex({ students, filters }: StudentPageProps) {
                             Manage student accounts and wallets
                         </p>
                     </div>
-                    <Button onClick={() => setOpenCreate(true)}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Add Student
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" onClick={toggleSelectionMode}>
+                            {selectionMode ? (
+                                <>
+                                    <X className="mr-1 h-4 w-4" />
+                                    Cancel
+                                </>
+                            ) : (
+                                <>
+                                    <Download className="mr-1 h-4 w-4" />
+                                    Export
+                                </>
+                            )}
+                        </Button>
+                        <Button onClick={() => setOpenCreate(true)}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Add Student
+                        </Button>
+                    </div>
                 </div>
+
+                {selectionMode && (
+                    <div className="flex items-center justify-between rounded-lg border border-primary/50 bg-primary/5 p-3">
+                        <div className="flex items-center gap-4">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleSelectAll}
+                            >
+                                {selectedIds.length === students.data.length
+                                    ? 'Deselect All'
+                                    : 'Select All'}
+                            </Button>
+                            <span className="text-sm text-muted-foreground">
+                                {selectedIds.length} of {students.data.length}{' '}
+                                selected
+                            </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleExportAll}
+                            >
+                                <FileText className="mr-1 h-4 w-4" />
+                                Export All PDF
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleExportAllQr}
+                            >
+                                <QrCode className="mr-1 h-4 w-4" />
+                                Export All QR
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={handleExportSelected}
+                                disabled={selectedIds.length === 0}
+                            >
+                                <Download className="mr-1 h-4 w-4" />
+                                PDF ({selectedIds.length})
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={handleExportSelectedQr}
+                                disabled={selectedIds.length === 0}
+                            >
+                                <QrCode className="mr-1 h-4 w-4" />
+                                QR ({selectedIds.length})
+                            </Button>
+                        </div>
+                    </div>
+                )}
 
                 <div className="flex flex-col gap-2 rounded-lg border p-3 md:flex-row md:items-center md:justify-between">
                     <div className="relative w-full md:w-80">
@@ -882,6 +1270,11 @@ export default function StudentsIndex({ students, filters }: StudentPageProps) {
                                 <StudentCard
                                     key={student.id}
                                     student={student}
+                                    isSelected={selectedIds.includes(
+                                        student.id,
+                                    )}
+                                    onSelect={handleSelect}
+                                    selectionMode={selectionMode}
                                 />
                             ))}
                         </div>

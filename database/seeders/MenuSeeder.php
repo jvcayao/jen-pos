@@ -2,20 +2,23 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Support\Str;
-use Illuminate\Database\Seeder;
-use Aliziodev\LaravelTaxonomy\Facades\Taxonomy;
 use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
+use Aliziodev\LaravelTaxonomy\Facades\Taxonomy;
+use App\Models\Store;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class MenuSeeder extends Seeder
 {
     public function run()
     {
-        /**
-         * ------------------------------------------------------------
-         * 1. DEFINE MENU CATEGORIES + SUBCATEGORIES
-         * ------------------------------------------------------------
-         */
+        // Clear existing taxonomies to allow re-seeding
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::table('taxonomables')->truncate();
+        DB::table('taxonomies')->truncate();
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
         $categories = [
             'Cakes Breads & Pizza' => [
                 'Bread with toppings',
@@ -27,27 +30,25 @@ class MenuSeeder extends Seeder
                 'Waffles',
                 'Donuts',
                 'Brownies',
-                'Baked'
+                'Baked',
             ],
 
             'Snacks & Dessert' => [
                 'Rice Cakes',
                 'Snacks',
                 'Desserts',
-
             ],
 
             'Burger & Sandwiches' => [
                 'Specialty Sandwich',
-                'Burgers'
+                'Burgers',
             ],
 
             'Breakfast Meal' => [
                 'Congee / Porridge',
                 'Silog Meal',
                 'Regular Breakfast',
-                'Pancakes'
-
+                'Pancakes',
             ],
 
             'Soups & Noodles' => [
@@ -56,8 +57,7 @@ class MenuSeeder extends Seeder
                 'Pancit',
                 'Spaghettis',
                 'Korean Noodles',
-                'Soups'
-
+                'Soups',
             ],
 
             'Main Dishes & Sides' => [
@@ -68,39 +68,46 @@ class MenuSeeder extends Seeder
                 'Ceviche Dishes',
                 'Beef Dishes',
                 'Rice Dishes',
-                'Salads'
+                'Salads',
             ],
 
             'Fruits & Drinks' => [
                 'Cold Drinks',
                 'Hot Drinks',
-                'Fruits'
-            ]
+                'Fruits',
+            ],
         ];
 
-        /**
-         * ------------------------------------------------------------
-         * 2. CREATE TAXONOMIES + TERMS
-         * ------------------------------------------------------------
-         */
-        foreach ($categories as $category => $subcategories) {
-            $taxonomy = Taxonomy::create([
-                'name' => $category,
-                'slug' => Str::slug($category),
-                'type' => TaxonomyType::Category->value,
-                'description' => $category,
-            ]);
+        // Get all stores and create categories for each
+        $stores = Store::all();
 
-            foreach ($subcategories as $sub) {
-                $subTaxonomy = Taxonomy::create([
-                    'name' => $sub,
-                    'slug' => Str::slug($sub),
+        foreach ($stores as $store) {
+            foreach ($categories as $category => $subcategories) {
+                // Use store_id in slug to ensure uniqueness across stores
+                // This allows filtering by store_id while maintaining unique slugs
+                $categorySlug = Str::slug($category).'-'.$store->id;
+
+                $taxonomy = Taxonomy::create([
+                    'name' => $category,
+                    'slug' => $categorySlug,
                     'type' => TaxonomyType::Category->value,
-                    'description' => $sub,
-                    'parent_id' => $taxonomy->id,
+                    'description' => $category,
+                    'store_id' => $store->id,
                 ]);
+
+                foreach ($subcategories as $sub) {
+                    $subSlug = Str::slug($sub).'-'.$store->id;
+
+                    Taxonomy::create([
+                        'name' => $sub,
+                        'slug' => $subSlug,
+                        'type' => TaxonomyType::Category->value,
+                        'description' => $sub,
+                        'parent_id' => $taxonomy->id,
+                        'store_id' => $store->id,
+                    ]);
+                }
             }
         }
-
     }
 }

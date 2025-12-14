@@ -2,10 +2,12 @@
 
 namespace Database\Seeders;
 
+use App\Models\Store;
 use App\Models\Product;
+use App\Scopes\StoreScope;
 use Illuminate\Support\Str;
 use Illuminate\Database\Seeder;
-use Aliziodev\LaravelTaxonomy\Facades\Taxonomy;
+use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
 
 class ProductSeeder extends Seeder
 {
@@ -432,27 +434,50 @@ class ProductSeeder extends Seeder
 
         ];
 
-        /**
-         * ------------------------------------------------------------
-         * 4. CREATE PRODUCTS + ATTACH TAXONOMIES
-         * ------------------------------------------------------------
-         */
-        foreach ($products as [$category, $subcategory, $name]) {
-            $cat = Taxonomy::findBySlug(Str::slug($category));
-            $sub = Taxonomy::findBySlug(Str::slug($subcategory));
+        // Get all stores and create products for each
+        $stores = Store::all();
 
-            if (!$sub || !$cat) {
-                continue;
+        foreach ($stores as $store) {
+            // Set current store context for the BelongsToStore trait
+            app()->instance('current.store', $store);
+
+            foreach ($products as [$category, $subcategory, $name]) {
+                // Find store-specific taxonomy using the store id suffix (matches MenuSeeder)
+                $subSlug = Str::slug($subcategory).'-'.$store->id;
+                $sub = Taxonomy::where('slug', $subSlug)
+                    ->where('store_id', $store->id)
+                    ->first();
+
+                if (! $sub) {
+                    continue;
+                }
+
+                // Create unique slug per store
+                $productSlug = Str::slug($name).'-'.$store->id;
+
+                // Check if product already exists for this store
+                $existingProduct = Product::withoutGlobalScope(StoreScope::class)
+                    ->where('slug', $productSlug)
+                    ->where('store_id', $store->id)
+                    ->first();
+
+                if ($existingProduct) {
+                    continue;
+                }
+
+                $product = Product::withoutGlobalScope(StoreScope::class)->create([
+                    'store_id' => $store->id,
+                    'name' => $name,
+                    'price' => rand(50, 200),
+                    'slug' => $productSlug,
+                    'description' => $name,
+                ]);
+
+                $product->attachTaxonomies([$sub->id]);
             }
-
-            $product = Product::create([
-                'name' => $name,
-                'price' => rand(50, 200),
-                'slug' => Str::slug($name),
-                'description' => $name,
-            ]);
-
-            $product->attachTaxonomies([$sub->id]);
         }
+
+        // Clear store context after seeding
+        app()->forgetInstance('current.store');
     }
 }

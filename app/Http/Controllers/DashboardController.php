@@ -8,7 +8,10 @@ use App\Models\Order;
 use App\Models\Student;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
+use App\Exports\DashboardExport;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class DashboardController extends Controller
 {
@@ -52,6 +55,7 @@ class DashboardController extends Controller
                 'search' => $request->input('search', ''),
                 'status' => $request->input('status', ''),
                 'payment_method' => $request->input('payment_method', ''),
+                'wallet_type' => $request->input('wallet_type', ''),
             ],
         ]);
     }
@@ -211,20 +215,48 @@ class DashboardController extends Controller
         $totalStudents = Student::count();
         $activeStudents = Student::where('is_active', true)->count();
 
-        // Total wallet balance across all students
-        $totalWalletBalance = DB::table('wallets')
-            ->where('holder_type', Student::class)
-            ->sum(DB::raw('balance / 100')); // Convert from cents if stored that way
+        // Count students by wallet type
+        $subscribeStudents = Student::where('wallet_type', Student::WALLET_SUBSCRIBE)->count();
+        $nonSubscribeStudents = Student::where('wallet_type', Student::WALLET_NON_SUBSCRIBE)->count();
 
-        // Wallet transactions in period
-        $walletOrders = Order::whereBetween('created_at', [$startDate, $endDate])
+        // Total wallet balance across all students (by type)
+        $subscribeWalletBalance = DB::table('wallets')
+            ->where('holder_type', Student::class)
+            ->where('slug', Student::WALLET_SUBSCRIBE)
+            ->sum(DB::raw('balance / 100'));
+
+        $nonSubscribeWalletBalance = DB::table('wallets')
+            ->where('holder_type', Student::class)
+            ->where('slug', Student::WALLET_NON_SUBSCRIBE)
+            ->sum(DB::raw('balance / 100'));
+
+        $totalWalletBalance = $subscribeWalletBalance + $nonSubscribeWalletBalance;
+
+        // Wallet transactions in period - by wallet type
+        $baseWalletQuery = Order::whereBetween('created_at', [$startDate, $endDate])
             ->where('status', 'confirm')
             ->where('is_void', false)
             ->where('payment_method', 'wallet')
             ->whereNotNull('student_id');
 
-        $walletSales = (clone $walletOrders)->sum('total');
-        $walletOrdersCount = (clone $walletOrders)->count();
+        $walletSales = (clone $baseWalletQuery)->sum('total');
+        $walletOrdersCount = (clone $baseWalletQuery)->count();
+
+        // Subscribe wallet sales
+        $subscribeWalletSales = (clone $baseWalletQuery)
+            ->where('wallet_type', 'subscribe')
+            ->sum('total');
+        $subscribeWalletOrdersCount = (clone $baseWalletQuery)
+            ->where('wallet_type', 'subscribe')
+            ->count();
+
+        // Non-subscribe wallet sales
+        $nonSubscribeWalletSales = (clone $baseWalletQuery)
+            ->where('wallet_type', 'non-subscribe')
+            ->sum('total');
+        $nonSubscribeWalletOrdersCount = (clone $baseWalletQuery)
+            ->where('wallet_type', 'non-subscribe')
+            ->count();
 
         // Top students by spending in period
         $topStudents = Order::whereBetween('created_at', [$startDate, $endDate])
@@ -252,9 +284,17 @@ class DashboardController extends Controller
         return [
             'total_students' => $totalStudents,
             'active_students' => $activeStudents,
+            'subscribe_students' => $subscribeStudents,
+            'non_subscribe_students' => $nonSubscribeStudents,
             'total_wallet_balance' => round((float) $totalWalletBalance, 2),
+            'subscribe_wallet_balance' => round((float) $subscribeWalletBalance, 2),
+            'non_subscribe_wallet_balance' => round((float) $nonSubscribeWalletBalance, 2),
             'wallet_sales' => round($walletSales, 2),
             'wallet_orders_count' => $walletOrdersCount,
+            'subscribe_wallet_sales' => round($subscribeWalletSales, 2),
+            'subscribe_wallet_orders_count' => $subscribeWalletOrdersCount,
+            'non_subscribe_wallet_sales' => round($nonSubscribeWalletSales, 2),
+            'non_subscribe_wallet_orders_count' => $nonSubscribeWalletOrdersCount,
             'top_students' => $topStudents,
         ];
     }
@@ -281,6 +321,12 @@ class DashboardController extends Controller
 
         if ($request->filled('payment_method')) {
             $query->where('payment_method', $request->input('payment_method'));
+        }
+
+        // Filter by wallet type (only applies to wallet payments)
+        if ($request->filled('wallet_type')) {
+            $query->where('payment_method', 'wallet')
+                ->where('wallet_type', $request->input('wallet_type'));
         }
 
         return $query->orderByDesc('created_at')
@@ -351,5 +397,112 @@ class DashboardController extends Controller
                 'period' => $startDate->format('M d, Y').' - '.$endDate->format('M d, Y'),
             ],
         ]);
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $startDate = $request->input('start_date')
+            ? Carbon::parse($request->input('start_date'))->startOfDay()
+            : Carbon::now()->startOfMonth();
+        $endDate = $request->input('end_date')
+            ? Carbon::parse($request->input('end_date'))->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        $filename = 'sales-report-'.$startDate->format('Y-m-d').'-to-'.$endDate->format('Y-m-d').'.xlsx';
+
+        return Excel::download(
+            new DashboardExport(
+                $startDate,
+                $endDate,
+                $request->input('status'),
+                $request->input('payment_method'),
+                $request->input('wallet_type')
+            ),
+            $filename
+        );
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $startDate = $request->input('start_date')
+            ? Carbon::parse($request->input('start_date'))->startOfDay()
+            : Carbon::now()->startOfMonth();
+        $endDate = $request->input('end_date')
+            ? Carbon::parse($request->input('end_date'))->endOfDay()
+            : Carbon::now()->endOfDay();
+
+        // Get summary statistics
+        $baseQuery = Order::whereBetween('created_at', [$startDate, $endDate])
+            ->where('status', 'confirm')
+            ->where('is_void', false);
+
+        if ($request->filled('payment_method')) {
+            $baseQuery->where('payment_method', $request->input('payment_method'));
+        }
+
+        if ($request->filled('wallet_type')) {
+            $baseQuery->where('payment_method', 'wallet')
+                ->where('wallet_type', $request->input('wallet_type'));
+        }
+
+        $totalSales = (clone $baseQuery)->sum('total');
+        $totalOrders = (clone $baseQuery)->count();
+        $totalVat = (clone $baseQuery)->sum('vat');
+        $averageOrderValue = $totalOrders > 0 ? $totalSales / $totalOrders : 0;
+
+        $summary = [
+            'total_sales' => $totalSales,
+            'total_orders' => $totalOrders,
+            'total_vat' => $totalVat,
+            'average_order_value' => $averageOrderValue,
+        ];
+
+        // Get top products
+        $topProducts = $this->getTopProducts($startDate, $endDate, 10);
+
+        // Get orders
+        $ordersQuery = Order::with(['items', 'user', 'cashier'])
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        if ($request->filled('status')) {
+            $ordersQuery->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('payment_method')) {
+            $ordersQuery->where('payment_method', $request->input('payment_method'));
+        }
+
+        if ($request->filled('wallet_type')) {
+            $ordersQuery->where('payment_method', 'wallet')
+                ->where('wallet_type', $request->input('wallet_type'));
+        }
+
+        $orders = $ordersQuery->orderByDesc('created_at')
+            ->limit(100)
+            ->get()
+            ->map(fn ($order) => [
+                'uuid' => $order->uuid,
+                'customer' => $order->user?->name ?? 'Walk-in',
+                'items_count' => $order->items->count(),
+                'total' => $order->total,
+                'status' => $order->status,
+                'payment_method' => $order->payment_method,
+                'created_at' => $order->created_at->format('Y-m-d H:i'),
+            ])
+            ->toArray();
+
+        $period = $startDate->format('M d, Y').' - '.$endDate->format('M d, Y');
+        $filename = 'sales-report-'.$startDate->format('Y-m-d').'-to-'.$endDate->format('Y-m-d').'.pdf';
+
+        $pdf = Pdf::loadView('exports.dashboard-pdf', [
+            'summary' => $summary,
+            'topProducts' => $topProducts,
+            'orders' => $orders,
+            'period' => $period,
+        ]);
+
+        $pdf->setPaper('a4', 'portrait');
+
+        return $pdf->download($filename);
     }
 }

@@ -112,27 +112,56 @@ class OrderController extends Controller
             ]);
         }
 
-        // Handle wallet payment - requires student
+        // Optional student assignment (for tracking even with non-wallet payments)
         $student = null;
-        if ($paymentMethod === 'wallet') {
-            if (empty($validated['student_id'])) {
-                return back()->with('flash', [
-                    'message' => 'Student is required for wallet payment!',
-                    'type' => 'error',
-                ]);
-            }
+        $walletType = null;
+        $wallet = null;
 
+        if (!empty($validated['student_id'])) {
             $student = Student::find($validated['student_id']);
+
             if (!$student) {
                 return back()->with('flash', [
-                    'message' => 'Student not found!',
+                    'message' => 'Selected student not found!',
                     'type' => 'error',
                 ]);
             }
 
             if (!$student->is_active) {
                 return back()->with('flash', [
-                    'message' => 'Student account is inactive!',
+                    'message' => 'Selected student account is inactive!',
+                    'type' => 'error',
+                ]);
+            }
+        }
+
+        // Handle wallet payment - requires student with assigned wallet
+        if ($paymentMethod === 'wallet') {
+            if (!$student) {
+                return back()->with('flash', [
+                    'message' => 'Student is required for wallet payment!',
+                    'type' => 'error',
+                ]);
+            }
+
+            // Check if student has a wallet type assigned
+            if (!$student->wallet_type) {
+                return back()->with('flash', [
+                    'message' => 'Student does not have a wallet assigned! They can only pay with Cash or G-Cash.',
+                    'type' => 'error',
+                ]);
+            }
+
+            $walletType = $student->wallet_type;
+
+            // Get the student's assigned wallet
+            $wallet = $student->getAssignedWallet();
+
+            if (!$wallet) {
+                $walletTypeName = $walletType === 'subscribe' ? 'Subscribe' : 'Non-Subscribe';
+
+                return back()->with('flash', [
+                    'message' => "Student's {$walletTypeName} Wallet is not available! They can only pay with Cash or G-Cash.",
                     'type' => 'error',
                 ]);
             }
@@ -198,20 +227,22 @@ class OrderController extends Controller
             $vat = $adjustedVatableAmount * ($taxRate / (1 + $taxRate));
 
             // Check wallet balance for wallet payments
-            if ($paymentMethod === 'wallet' && $student) {
-                if ($student->balanceFloatNum < $total) {
+            if ($paymentMethod === 'wallet' && $student && $wallet) {
+                if ($wallet->balanceFloatNum < $total) {
                     DB::rollBack();
+                    $walletTypeName = $walletType === 'subscribe' ? 'Subscribe' : 'Non-Subscribe';
 
                     return back()->with('flash', [
-                        'message' => 'Insufficient wallet balance! Current balance: ₱'.number_format($student->balanceFloatNum, 2),
+                        'message' => "Insufficient {$walletTypeName} Wallet balance! Current balance: ₱".number_format($wallet->balanceFloatNum, 2),
                         'type' => 'error',
                     ]);
                 }
 
-                // Deduct from wallet
-                $student->withdrawFloat($total, [
+                // Deduct from the selected wallet
+                $wallet->withdrawFloat($total, [
                     'description' => 'Payment for order',
                     'order_total' => $total,
+                    'wallet_type' => $walletType,
                 ]);
             }
 
@@ -228,6 +259,7 @@ class OrderController extends Controller
                 'status' => 'confirm',
                 'is_payed' => true,
                 'payment_method' => $paymentMethod,
+                'wallet_type' => $walletType,
                 'payment_vendor' => $paymentConfig['vendor'],
                 'notes' => $validated['notes'] ?? null,
             ]);
