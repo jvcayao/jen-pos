@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Store;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
+use App\Models\Store;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
@@ -66,7 +66,7 @@ class UserController extends Controller
         $user = $request->user();
 
         // Only store admin or head office admin can create users
-        if (! $user->isStoreAdmin() && ! $user->isHeadOfficeAdmin()) {
+        if (!$user->isStoreAdmin() && !$user->isHeadOfficeAdmin()) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -81,7 +81,7 @@ class UserController extends Controller
 
         // Verify user has access to assign these stores
         foreach ($validated['store_ids'] as $storeId) {
-            if (! $user->canAccessStore($storeId)) {
+            if (!$user->canAccessStore($storeId)) {
                 abort(403, 'You do not have access to assign this store.');
             }
         }
@@ -103,12 +103,12 @@ class UserController extends Controller
         $user = $request->user();
 
         // Only store admin or head office admin can update users
-        if (! $user->isStoreAdmin() && ! $user->isHeadOfficeAdmin()) {
+        if (!$user->isStoreAdmin() && !$user->isHeadOfficeAdmin()) {
             abort(403, 'Unauthorized action.');
         }
 
         // Cannot edit head office admin
-        if ($targetUser->isHeadOfficeAdmin() && ! $user->isHeadOfficeAdmin()) {
+        if ($targetUser->isHeadOfficeAdmin() && !$user->isHeadOfficeAdmin()) {
             abort(403, 'Cannot modify head office admin.');
         }
 
@@ -123,7 +123,7 @@ class UserController extends Controller
 
         // Verify user has access to assign these stores
         foreach ($validated['store_ids'] as $storeId) {
-            if (! $user->canAccessStore($storeId)) {
+            if (!$user->canAccessStore($storeId)) {
                 abort(403, 'You do not have access to assign this store.');
             }
         }
@@ -133,7 +133,7 @@ class UserController extends Controller
             'email' => $validated['email'],
         ]);
 
-        if (! empty($validated['password'])) {
+        if (!empty($validated['password'])) {
             $targetUser->update(['password' => Hash::make($validated['password'])]);
         }
 
@@ -148,7 +148,7 @@ class UserController extends Controller
         $user = $request->user();
 
         // Only store admin or head office admin can delete users
-        if (! $user->isStoreAdmin() && ! $user->isHeadOfficeAdmin()) {
+        if (!$user->isStoreAdmin() && !$user->isHeadOfficeAdmin()) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -165,7 +165,7 @@ class UserController extends Controller
         // Verify user has access to at least one of target user's stores
         $hasAccess = $targetUser->stores->some(fn ($store) => $user->canAccessStore($store->id));
 
-        if (! $hasAccess) {
+        if (!$hasAccess) {
             abort(403, 'You do not have access to delete this user.');
         }
 

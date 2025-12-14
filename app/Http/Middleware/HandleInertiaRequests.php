@@ -2,11 +2,11 @@
 
 namespace App\Http\Middleware;
 
-use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
-use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
 use App\Models\Store;
-use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Illuminate\Http\Request;
+use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
+use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -56,7 +56,7 @@ class HandleInertiaRequests extends Middleware
                 'code' => $currentStore->code,
             ] : null,
             'canSwitchStore' => $user && $user->hasMultipleStores(),
-            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'sidebarOpen' => !$request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'navigation' => $currentStore
                 ? Taxonomy::where('store_id', $currentStore->id)
                     ->where('type', TaxonomyType::Category->value)

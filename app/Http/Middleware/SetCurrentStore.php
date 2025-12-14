@@ -2,8 +2,8 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Store;
 use Closure;
+use App\Models\Store;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 

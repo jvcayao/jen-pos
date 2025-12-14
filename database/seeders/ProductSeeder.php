@@ -448,7 +448,7 @@ class ProductSeeder extends Seeder
                     ->where('store_id', $store->id)
                     ->first();
 
-                if (! $sub) {
+                if (!$sub) {
                     continue;
                 }
 

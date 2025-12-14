@@ -7,8 +7,11 @@ use App\Models\Order;
 use Inertia\Response;
 use App\Models\Student;
 use App\Models\OrderItem;
+use App\Events\OrderCreated;
 use App\Models\DiscountCode;
 use Illuminate\Http\Request;
+use App\Events\WalletWithdrawn;
+use App\Events\StockDecremented;
 use Illuminate\Support\Facades\DB;
 use Binafy\LaravelCart\Models\Cart;
 use Illuminate\Http\RedirectResponse;
@@ -244,6 +247,16 @@ class OrderController extends Controller
                     'order_total' => $total,
                     'wallet_type' => $walletType,
                 ]);
+
+                // Dispatch wallet withdrawn event for order payment
+                WalletWithdrawn::dispatch(
+                    $student,
+                    $total,
+                    $walletType,
+                    $wallet->balanceFloatNum,
+                    'Payment for order',
+                    null // Order ID will be set after order creation
+                );
             }
 
             $order = Order::create([
@@ -290,6 +303,14 @@ class OrderController extends Controller
 
                 // Decrement stock
                 $product->decrementStock($cartItem->quantity);
+
+                // Dispatch stock decremented event
+                StockDecremented::dispatch(
+                    $product->fresh(),
+                    $cartItem->quantity,
+                    $product->fresh()->stock ?? 0,
+                    $order->id
+                );
             }
 
             // Increment discount code usage
@@ -300,6 +321,9 @@ class OrderController extends Controller
             $cart->emptyCart();
 
             DB::commit();
+
+            // Dispatch order created event (after commit to ensure data is persisted)
+            OrderCreated::dispatch($order, $student, $walletType, $discountAmount);
 
             return redirect()->route('orders.show', $order)->with('flash', [
                 'message' => 'Order created successfully!',

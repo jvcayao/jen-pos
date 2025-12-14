@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use Inertia\Inertia;
 use App\Models\Store;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 
 class StoreSelectionController extends Controller
 {
@@ -36,13 +36,13 @@ class StoreSelectionController extends Controller
         $storeId = $request->input('store_id');
 
         // Verify user has access to this store
-        if (! $user->canAccessStore($storeId)) {
+        if (!$user->canAccessStore($storeId)) {
             abort(403, 'You do not have access to this store.');
         }
 
         $store = Store::find($storeId);
 
-        if (! $store || ! $store->is_active) {
+        if (!$store || !$store->is_active) {
             return back()->withErrors(['store_id' => 'The selected store is not available.']);
         }
 

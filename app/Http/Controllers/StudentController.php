@@ -7,6 +7,10 @@ use Inertia\Response;
 use App\Models\Student;
 use BaconQrCode\Writer;
 use Illuminate\Http\Request;
+use App\Events\StudentCreated;
+use App\Services\CacheService;
+use App\Events\WalletDeposited;
+use App\Events\WalletWithdrawn;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +22,10 @@ use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 
 class StudentController extends Controller
 {
+    public function __construct(
+        protected CacheService $cacheService,
+    ) {}
+
     public function index(Request $request): Response
     {
         $students = Student::query()
@@ -75,6 +83,9 @@ class StudentController extends Controller
         if ($student->wallet_type) {
             $student->createAssignedWallet();
         }
+
+        // Dispatch student created event
+        StudentCreated::dispatch($student, $student->wallet_type);
 
         return back()->with('flash', [
             'message' => 'Student created successfully!',
@@ -158,9 +169,19 @@ class StudentController extends Controller
             DB::commit();
 
             $walletName = $student->wallet_type === 'subscribe' ? 'Subscribe' : 'Non-Subscribe';
+            $newBalance = $wallet->balanceFloatNum;
+
+            // Dispatch wallet deposited event
+            WalletDeposited::dispatch(
+                $student,
+                (float) $validated['amount'],
+                $student->wallet_type,
+                $newBalance,
+                $validated['description'] ?? 'Wallet deposit'
+            );
 
             return back()->with('flash', [
-                'message' => "Deposit successful to {$walletName} Wallet! New balance: ₱".number_format($wallet->balanceFloatNum, 2),
+                'message' => "Deposit successful to {$walletName} Wallet! New balance: ₱".number_format($newBalance, 2),
                 'type' => 'success',
             ]);
         } catch (\Exception $e) {
@@ -214,9 +235,19 @@ class StudentController extends Controller
             DB::commit();
 
             $walletName = $student->wallet_type === 'subscribe' ? 'Subscribe' : 'Non-Subscribe';
+            $newBalance = $wallet->balanceFloatNum;
+
+            // Dispatch wallet withdrawn event
+            WalletWithdrawn::dispatch(
+                $student,
+                (float) $validated['amount'],
+                $student->wallet_type,
+                $newBalance,
+                $validated['description'] ?? 'Wallet withdrawal'
+            );
 
             return back()->with('flash', [
-                'message' => "Withdrawal successful from {$walletName} Wallet! New balance: ₱".number_format($wallet->balanceFloatNum, 2),
+                'message' => "Withdrawal successful from {$walletName} Wallet! New balance: ₱".number_format($newBalance, 2),
                 'type' => 'success',
             ]);
         } catch (\Exception $e) {
@@ -249,17 +280,23 @@ class StudentController extends Controller
             ]);
         }
 
-        $transactions = $wallet->transactions()
-            ->orderByDesc('created_at')
-            ->limit(50)
-            ->get()
-            ->map(fn ($t) => [
-                'id' => $t->id,
-                'type' => $t->type,
-                'amount' => (float) $t->amountFloat,
-                'meta' => $t->meta,
-                'created_at' => $t->created_at->format('M d, Y h:i A'),
-            ]);
+        // Cache transactions (short TTL since balance changes frequently)
+        $transactions = $this->cacheService->remember(
+            $this->cacheService->getStudentTransactionsKey($student->id),
+            CacheService::TTL_SHORT,
+            fn () => $wallet->transactions()
+                ->orderByDesc('created_at')
+                ->limit(50)
+                ->get()
+                ->map(fn ($t) => [
+                    'id' => $t->id,
+                    'type' => $t->type,
+                    'amount' => (float) $t->amountFloat,
+                    'meta' => $t->meta,
+                    'created_at' => $t->created_at->format('M d, Y h:i A'),
+                ])
+                ->toArray()
+        );
 
         return response()->json([
             'transactions' => $transactions,
@@ -270,22 +307,31 @@ class StudentController extends Controller
 
     public function search(Request $request): JsonResponse
     {
-        $students = Student::query()
-            ->active()
-            ->search($request->q)
-            ->limit(10)
-            ->get()
-            ->map(fn ($student) => [
-                'id' => $student->id,
-                'student_id' => $student->student_id,
-                'full_name' => $student->full_name,
-                'grade_level' => $student->grade_level,
-                'section' => $student->section,
-                'wallet_type' => $student->wallet_type,
-                'wallet_balance' => $student->assigned_wallet_balance,
-                'has_wallet' => $student->hasAssignedWallet(),
-                'qr_code_url' => $student->qr_code_url,
-            ]);
+        $query = $request->q ?? '';
+        $storeId = session('current_store_id', 0);
+
+        // Cache search results (short TTL for fresh data)
+        $students = $this->cacheService->remember(
+            $this->cacheService->getStudentSearchKey($storeId, $query),
+            CacheService::TTL_SHORT,
+            fn () => Student::query()
+                ->active()
+                ->search($query)
+                ->limit(10)
+                ->get()
+                ->map(fn ($student) => [
+                    'id' => $student->id,
+                    'student_id' => $student->student_id,
+                    'full_name' => $student->full_name,
+                    'grade_level' => $student->grade_level,
+                    'section' => $student->section,
+                    'wallet_type' => $student->wallet_type,
+                    'wallet_balance' => $student->assigned_wallet_balance,
+                    'has_wallet' => $student->hasAssignedWallet(),
+                    'qr_code_url' => $student->qr_code_url,
+                ])
+                ->toArray()
+        );
 
         return response()->json(['students' => $students]);
     }

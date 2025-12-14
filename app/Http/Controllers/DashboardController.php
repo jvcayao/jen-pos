@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Student;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
+use App\Services\CacheService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Exports\DashboardExport;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,10 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        protected CacheService $cacheService,
+    ) {}
+
     public function index(Request $request)
     {
         $startDate = $request->input('start_date')
@@ -24,23 +29,49 @@ class DashboardController extends Controller
             ? Carbon::parse($request->input('end_date'))->endOfDay()
             : Carbon::now()->endOfDay();
 
-        // Get summary statistics
-        $stats = $this->getStats($startDate, $endDate);
+        $storeId = session('current_store_id', 0);
+        $dateRangeHash = $this->cacheService->getDateRangeHash(
+            $startDate->toDateString(),
+            $endDate->toDateString()
+        );
 
-        // Get sales chart data
-        $salesChart = $this->getSalesChartData($startDate, $endDate);
+        // Get summary statistics (cached)
+        $stats = $this->cacheService->remember(
+            $this->cacheService->getDashboardStatsKey($storeId, $dateRangeHash),
+            CacheService::TTL_MEDIUM,
+            fn () => $this->getStats($startDate, $endDate)
+        );
 
-        // Get top products
-        $topProducts = $this->getTopProducts($startDate, $endDate);
+        // Get sales chart data (cached)
+        $salesChart = $this->cacheService->remember(
+            $this->cacheService->getDashboardSalesChartKey($storeId, $dateRangeHash),
+            CacheService::TTL_MEDIUM,
+            fn () => $this->getSalesChartData($startDate, $endDate)
+        );
 
-        // Get payment method breakdown
-        $paymentBreakdown = $this->getPaymentBreakdown($startDate, $endDate);
+        // Get top products (cached)
+        $topProducts = $this->cacheService->remember(
+            $this->cacheService->getDashboardTopProductsKey($storeId, $dateRangeHash),
+            CacheService::TTL_LONG,
+            fn () => $this->getTopProducts($startDate, $endDate)
+        );
 
-        // Get recent orders with pagination
+        // Get payment method breakdown (cached)
+        $paymentBreakdown = $this->cacheService->remember(
+            $this->cacheService->getDashboardPaymentBreakdownKey($storeId, $dateRangeHash),
+            CacheService::TTL_MEDIUM,
+            fn () => $this->getPaymentBreakdown($startDate, $endDate)
+        );
+
+        // Get recent orders with pagination (not cached due to pagination state)
         $orders = $this->getOrders($request, $startDate, $endDate);
 
-        // Get student wallet statistics
-        $studentStats = $this->getStudentStats($startDate, $endDate);
+        // Get student wallet statistics (cached)
+        $studentStats = $this->cacheService->remember(
+            $this->cacheService->getDashboardStudentStatsKey($storeId, $dateRangeHash),
+            CacheService::TTL_LONG,
+            fn () => $this->getStudentStats($startDate, $endDate)
+        );
 
         return Inertia::render('dashboard', [
             'stats' => $stats,
