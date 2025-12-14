@@ -65,5 +65,4 @@ trait FlashesSessionData
 
         return redirect()->intended($fallback);
     }
-
 }

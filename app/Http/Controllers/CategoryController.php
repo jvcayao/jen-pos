@@ -16,6 +16,7 @@ use App\Http\Controllers\Traits\FlashesSessionData;
 class CategoryController extends Controller
 {
     use FlashesSessionData;
+
     public function index(): Response
     {
         $categories = Taxonomy::tree(TaxonomyType::Category)

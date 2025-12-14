@@ -15,6 +15,7 @@ use App\Http\Controllers\Traits\FlashesSessionData;
 class UserController extends Controller
 {
     use FlashesSessionData;
+
     public function index(Request $request)
     {
         $user = $request->user();

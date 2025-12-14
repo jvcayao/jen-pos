@@ -20,6 +20,7 @@ use App\Http\Controllers\Traits\FlashesSessionData;
 class ProductController extends Controller
 {
     use FlashesSessionData;
+
     public function index(Request $request): Response
     {
         $products = Product::query()

@@ -856,10 +856,13 @@ export default function Dashboard({
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-2xl font-bold">
-                                        {formatCurrency(studentStats.wallet_sales)}
+                                        {formatCurrency(
+                                            studentStats.wallet_sales,
+                                        )}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        {studentStats.wallet_orders_count} orders
+                                        {studentStats.wallet_orders_count}{' '}
+                                        orders
                                     </p>
                                 </CardContent>
                             </Card>
@@ -913,7 +916,8 @@ export default function Dashboard({
                                         Subscribe Wallet
                                     </CardTitle>
                                     <CardDescription>
-                                        Subscription-based wallet for regular meals
+                                        Subscription-based wallet for regular
+                                        meals
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -923,7 +927,9 @@ export default function Dashboard({
                                                 Students
                                             </p>
                                             <p className="text-xl font-bold text-blue-600">
-                                                {studentStats.subscribe_students}
+                                                {
+                                                    studentStats.subscribe_students
+                                                }
                                             </p>
                                         </div>
                                         <div>
@@ -951,7 +957,9 @@ export default function Dashboard({
                                                 Orders
                                             </p>
                                             <p className="text-xl font-bold text-blue-600">
-                                                {studentStats.subscribe_wallet_orders_count}
+                                                {
+                                                    studentStats.subscribe_wallet_orders_count
+                                                }
                                             </p>
                                         </div>
                                     </div>
@@ -965,7 +973,8 @@ export default function Dashboard({
                                         Non-Subscribe Wallet
                                     </CardTitle>
                                     <CardDescription>
-                                        Regular wallet for non-subscription purchases
+                                        Regular wallet for non-subscription
+                                        purchases
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -975,7 +984,9 @@ export default function Dashboard({
                                                 Students
                                             </p>
                                             <p className="text-xl font-bold text-green-600">
-                                                {studentStats.non_subscribe_students}
+                                                {
+                                                    studentStats.non_subscribe_students
+                                                }
                                             </p>
                                         </div>
                                         <div>
@@ -1003,7 +1014,9 @@ export default function Dashboard({
                                                 Orders
                                             </p>
                                             <p className="text-xl font-bold text-green-600">
-                                                {studentStats.non_subscribe_wallet_orders_count}
+                                                {
+                                                    studentStats.non_subscribe_wallet_orders_count
+                                                }
                                             </p>
                                         </div>
                                     </div>

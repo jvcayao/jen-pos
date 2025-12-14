@@ -50,7 +50,11 @@ function useQuerySync(initial: { search?: string; category?: string }) {
     return { search, setSearch, category, setCategory };
 }
 
-function ProductCard({ product }: { product: MenuProductCardProps['product'] }) {
+function ProductCard({
+    product,
+}: {
+    product: MenuProductCardProps['product'];
+}) {
     const [loading, setLoading] = useState(false);
     const isOutOfStock = product.track_inventory && product.stock <= 0;
 

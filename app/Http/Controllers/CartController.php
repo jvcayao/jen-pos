@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use Inertia\Inertia;
-use Inertia\Response;
 use App\Models\Store;
+use Inertia\Response;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Binafy\LaravelCart\Models\Cart;
@@ -18,6 +18,7 @@ use App\Http\Controllers\Traits\FlashesSessionData;
 class CartController extends Controller
 {
     use FlashesSessionData;
+
     public function index(): Response
     {
         $cart = $this->getCartData();

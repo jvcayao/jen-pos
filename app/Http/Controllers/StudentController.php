@@ -17,13 +17,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use App\Http\Controllers\Traits\FlashesSessionData;
 use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
-use App\Http\Controllers\Traits\FlashesSessionData;
 
 class StudentController extends Controller
 {
     use FlashesSessionData;
+
     public function __construct(
         protected CacheService $cacheService,
     ) {}
