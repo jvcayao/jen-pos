@@ -22,7 +22,7 @@ import {
     Search,
     ShoppingBag,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Menu', href: '/menu' }];
 
@@ -50,7 +50,11 @@ function useQuerySync(initial: { search?: string; category?: string }) {
     return { search, setSearch, category, setCategory };
 }
 
-function ProductCard({ product, onAddToCart }: MenuProductCardProps) {
+function ProductCard({
+    product,
+}: {
+    product: MenuProductCardProps['product'];
+}) {
     const [loading, setLoading] = useState(false);
     const isOutOfStock = product.track_inventory && product.stock <= 0;
 
@@ -61,14 +65,9 @@ function ProductCard({ product, onAddToCart }: MenuProductCardProps) {
             '/cart/add',
             { id: product.id },
             {
-                onSuccess: () => {
-                    setLoading(false);
-                    if (onAddToCart) onAddToCart();
-                },
+                onSuccess: () => setLoading(false),
                 onError: () => setLoading(false),
-                preserveState: true,
                 preserveScroll: true,
-                replace: true,
             },
         );
     }
@@ -153,11 +152,9 @@ function ProductCard({ product, onAddToCart }: MenuProductCardProps) {
 function BarcodeScanner({
     open,
     onClose,
-    onProductAdded,
 }: {
     open: boolean;
     onClose: () => void;
-    onProductAdded: () => void;
 }) {
     const [barcode, setBarcode] = useState('');
     const [loading, setLoading] = useState(false);
@@ -203,7 +200,8 @@ function BarcodeScanner({
             if (data.success) {
                 setSuccess(data.message);
                 setBarcode('');
-                onProductAdded();
+                // Refresh page to get updated cart count
+                router.reload({ only: ['cart'] });
             } else {
                 setError(data.message);
             }
@@ -268,22 +266,15 @@ function BarcodeScanner({
 
 export default function MenuIndex() {
     const { props } = usePage<MenuPageProps>();
-    const products = props.products ?? [];
-    const initialCartCount = props.cart?.count ?? 0;
+    const products = useMemo(() => props.products ?? [], [props.products]);
+    const cartCount = props.cart?.count ?? 0;
     const categories = props.categories ?? [];
     const { search, setSearch, category, setCategory } = useQuerySync(
         props.filters ?? {},
     );
     const [cartOpen, setCartOpen] = useState(false);
-    const [cartCount, setCartCount] = useState(initialCartCount);
     const [scannerOpen, setScannerOpen] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
-
-    console.log(initialCartCount);
-
-    useEffect(() => {
-        setCartCount(initialCartCount);
-    }, [initialCartCount]);
 
     // Keyboard shortcuts
     const handleKeyPress = useCallback(
@@ -333,12 +324,7 @@ export default function MenuIndex() {
                     router.post(
                         '/cart/add',
                         { id: product.id },
-                        {
-                            preserveState: true,
-                            preserveScroll: true,
-                            replace: true,
-                            onSuccess: () => setCartCount((c) => c + 1),
-                        },
+                        { preserveScroll: true },
                     );
                 }
             }
@@ -421,12 +407,7 @@ export default function MenuIndex() {
                                         Alt+{index + 1}
                                     </Badge>
                                 )}
-                                <ProductCard
-                                    product={p}
-                                    onAddToCart={() =>
-                                        setCartCount((c) => c + 1)
-                                    }
-                                />
+                                <ProductCard product={p} />
                             </div>
                         ))}
                     </div>
@@ -449,7 +430,6 @@ export default function MenuIndex() {
                 <BarcodeScanner
                     open={scannerOpen}
                     onClose={() => setScannerOpen(false)}
-                    onProductAdded={() => setCartCount((c) => c + 1)}
                 />
             </div>
         </AppLayout>

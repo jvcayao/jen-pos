@@ -12,7 +12,7 @@ class EnsureStoreSelected
     {
         $user = $request->user();
 
-        if (! $user) {
+        if (!$user) {
             return redirect()->route('login');
         }
 
@@ -25,18 +25,18 @@ class EnsureStoreSelected
         }
 
         // If user has only one store, auto-select it
-        if ($stores->count() === 1 && ! session()->has('current_store_id')) {
+        if ($stores->count() === 1 && !session()->has('current_store_id')) {
             session()->put('current_store_id', $stores->first()->id);
         }
 
         // If no store selected and user has multiple stores, redirect to selection
-        if (! session()->has('current_store_id')) {
+        if (!session()->has('current_store_id')) {
             return redirect()->route('store.select');
         }
 
         // Verify user still has access to selected store
         $selectedStoreId = session()->get('current_store_id');
-        if (! $user->canAccessStore($selectedStoreId)) {
+        if (!$user->canAccessStore($selectedStoreId)) {
             session()->forget('current_store_id');
 
             return redirect()->route('store.select');

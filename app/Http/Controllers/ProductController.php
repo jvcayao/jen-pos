@@ -15,9 +15,12 @@ use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
 use Aliziodev\LaravelTaxonomy\Enums\TaxonomyType;
+use App\Http\Controllers\Traits\FlashesSessionData;
 
 class ProductController extends Controller
 {
+    use FlashesSessionData;
+
     public function index(Request $request): Response
     {
         $products = Product::query()

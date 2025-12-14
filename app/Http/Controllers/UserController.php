@@ -2,17 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Store;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
+use App\Models\Store;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
+use App\Http\Controllers\Traits\FlashesSessionData;
 
 class UserController extends Controller
 {
+    use FlashesSessionData;
+
     public function index(Request $request)
     {
         $user = $request->user();
@@ -66,7 +69,7 @@ class UserController extends Controller
         $user = $request->user();
 
         // Only store admin or head office admin can create users
-        if (! $user->isStoreAdmin() && ! $user->isHeadOfficeAdmin()) {
+        if (!$user->isStoreAdmin() && !$user->isHeadOfficeAdmin()) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -81,7 +84,7 @@ class UserController extends Controller
 
         // Verify user has access to assign these stores
         foreach ($validated['store_ids'] as $storeId) {
-            if (! $user->canAccessStore($storeId)) {
+            if (!$user->canAccessStore($storeId)) {
                 abort(403, 'You do not have access to assign this store.');
             }
         }
@@ -95,7 +98,10 @@ class UserController extends Controller
         $newUser->stores()->attach($validated['store_ids']);
         $newUser->assignRole($validated['role']);
 
-        return back()->with('success', 'User created successfully.');
+        return back()->with('flash', [
+            'type' => 'success',
+            'message' => 'User created successfully.',
+        ]);
     }
 
     public function update(Request $request, User $targetUser)
@@ -103,12 +109,12 @@ class UserController extends Controller
         $user = $request->user();
 
         // Only store admin or head office admin can update users
-        if (! $user->isStoreAdmin() && ! $user->isHeadOfficeAdmin()) {
+        if (!$user->isStoreAdmin() && !$user->isHeadOfficeAdmin()) {
             abort(403, 'Unauthorized action.');
         }
 
         // Cannot edit head office admin
-        if ($targetUser->isHeadOfficeAdmin() && ! $user->isHeadOfficeAdmin()) {
+        if ($targetUser->isHeadOfficeAdmin() && !$user->isHeadOfficeAdmin()) {
             abort(403, 'Cannot modify head office admin.');
         }
 
@@ -123,7 +129,7 @@ class UserController extends Controller
 
         // Verify user has access to assign these stores
         foreach ($validated['store_ids'] as $storeId) {
-            if (! $user->canAccessStore($storeId)) {
+            if (!$user->canAccessStore($storeId)) {
                 abort(403, 'You do not have access to assign this store.');
             }
         }
@@ -133,14 +139,17 @@ class UserController extends Controller
             'email' => $validated['email'],
         ]);
 
-        if (! empty($validated['password'])) {
+        if (!empty($validated['password'])) {
             $targetUser->update(['password' => Hash::make($validated['password'])]);
         }
 
         $targetUser->stores()->sync($validated['store_ids']);
         $targetUser->syncRoles([$validated['role']]);
 
-        return back()->with('success', 'User updated successfully.');
+        return back()->with('flash', [
+            'type' => 'success',
+            'message' => 'User updated successfully.',
+        ]);
     }
 
     public function destroy(Request $request, User $targetUser)
@@ -148,7 +157,7 @@ class UserController extends Controller
         $user = $request->user();
 
         // Only store admin or head office admin can delete users
-        if (! $user->isStoreAdmin() && ! $user->isHeadOfficeAdmin()) {
+        if (!$user->isStoreAdmin() && !$user->isHeadOfficeAdmin()) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -165,13 +174,16 @@ class UserController extends Controller
         // Verify user has access to at least one of target user's stores
         $hasAccess = $targetUser->stores->some(fn ($store) => $user->canAccessStore($store->id));
 
-        if (! $hasAccess) {
+        if (!$hasAccess) {
             abort(403, 'You do not have access to delete this user.');
         }
 
         $targetUser->stores()->detach();
         $targetUser->delete();
 
-        return back()->with('success', 'User deleted successfully.');
+        return back()->with('flash', [
+            'type' => 'success',
+            'message' => 'User deleted successfully.',
+        ]);
     }
 }

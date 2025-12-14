@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use Inertia\Inertia;
-use Inertia\Response;
 use App\Models\Store;
+use Inertia\Response;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use App\Services\CacheService;
 use Binafy\LaravelCart\Models\Cart;
 use App\Http\Resources\CartResource;
 use App\Http\Resources\ProductResource;
@@ -15,23 +16,42 @@ use Aliziodev\LaravelTaxonomy\Models\Taxonomy as AliziodevTaxonomyModel;
 
 class MenuController extends Controller
 {
-    public function index(Request $request, Store $store, ?TaxonomyModel $taxonomy = null): Response
+    public function __construct(
+        protected CacheService $cacheService,
+    ) {}
+
+    public function index(Request $request, Store $store, ?string $taxonomy = null): Response
     {
         // Set the store in app container for global scopes to work
         app()->instance('current.store', $store);
 
-        // Get taxonomy IDs to filter by (including children)
-        $taxonomyIds = $this->getTaxonomyIdsForFilter($store, $taxonomy);
+        // Manually resolve taxonomy scoped to the current store
+        $taxonomyModel = $taxonomy
+            ? TaxonomyModel::where('store_id', $store->id)->where('slug', $taxonomy)->first()
+            : null;
 
-        $products = Product::query()
-            ->with('taxonomies')
-            ->when(! empty($taxonomyIds), function ($query) use ($taxonomyIds) {
-                $query->whereHas('taxonomies', fn ($q) => $q->whereIn('taxonomies.id', $taxonomyIds));
-            })
-            ->when($request->filled('search'), fn ($query) => $query->where('name', 'like', '%'.$request->string('search').'%'))
-            ->get();
+        $categoryId = $taxonomyModel?->id;
+        $search = $request->string('search')->toString();
 
-        $categories = $this->getSubCategories($store, $taxonomy);
+        // Get products (cached when no search, fresh when searching)
+        if (empty($search)) {
+            $products = $this->cacheService->remember(
+                $this->cacheService->getProductsKey($store->id, $categoryId),
+                CacheService::TTL_LONG,
+                fn () => $this->getProducts($store, $taxonomyModel, null)
+            );
+        } else {
+            // Don't cache search results - they're too varied
+            $products = $this->getProducts($store, $taxonomyModel, $search);
+        }
+
+        // Get categories (cached)
+        $categories = $this->cacheService->remember(
+            $this->cacheService->getCategoryChildrenKey($store->id, $categoryId),
+            CacheService::TTL_VERY_LONG,
+            fn () => $this->getSubCategories($store, $taxonomyModel)
+        );
+
         $cart = $this->getCartData();
 
         return Inertia::render('menu/index', [
@@ -43,9 +63,22 @@ class MenuController extends Controller
         ]);
     }
 
+    private function getProducts(Store $store, ?TaxonomyModel $taxonomy, ?string $search)
+    {
+        $taxonomyIds = $this->getTaxonomyIdsForFilter($store, $taxonomy);
+
+        return Product::query()
+            ->with('taxonomies')
+            ->when(!empty($taxonomyIds), function ($query) use ($taxonomyIds) {
+                $query->whereHas('taxonomies', fn ($q) => $q->whereIn('taxonomies.id', $taxonomyIds));
+            })
+            ->when(!empty($search), fn ($query) => $query->where('name', 'like', '%'.$search.'%'))
+            ->get();
+    }
+
     private function getTaxonomyIdsForFilter(Store $store, ?TaxonomyModel $taxonomy): array
     {
-        if (! $taxonomy?->exists) {
+        if (!$taxonomy?->exists) {
             // No taxonomy filter - return empty to show all products
             return [];
         }
@@ -64,7 +97,7 @@ class MenuController extends Controller
 
     private function getSubCategories(Store $store, ?TaxonomyModel $taxonomy): mixed
     {
-        if (! $taxonomy?->exists) {
+        if (!$taxonomy?->exists) {
             // Return root categories for this store
             return AliziodevTaxonomyModel::where('store_id', $store->id)
                 ->whereNull('parent_id')

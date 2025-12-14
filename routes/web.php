@@ -1,16 +1,16 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CartController;
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
-use App\Http\Controllers\StoreSelectionController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\StoreSelectionController;
 use App\Http\Controllers\StudentDashboardController;
-use App\Http\Controllers\UserController;
-use Illuminate\Support\Facades\Route;
 
 // Store selection routes (requires auth but not store selection)
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -22,7 +22,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified', 'store.selected'])->group(function () {
     // Redirect root to current store's menu
     Route::get('/', function () {
-        $store = \App\Models\Store::find(session('current_store_id'));
+        $store = App\Models\Store::find(session('current_store_id'));
 
         return redirect()->route('menu.index', ['store' => $store->slug]);
     });
@@ -48,7 +48,7 @@ Route::middleware(['auth', 'verified', 'store.selected'])->group(function () {
         Route::post('products/generate-codes', [ProductController::class, 'generateCodes'])->name('products.generate-codes');
     });
 
-    Route::get('/store/{store:slug}/menu/{taxonomy:slug?}', [MenuController::class, 'index'])->name('menu.index');
+    Route::get('/store/{store:slug}/menu/{taxonomy?}', [MenuController::class, 'index'])->name('menu.index');
 
     Route::prefix('cart')->name('cart.')->group(function () {
         Route::get('/', [CartController::class, 'index'])->name('index');

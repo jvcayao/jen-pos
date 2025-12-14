@@ -160,16 +160,22 @@ function UserFormFields({
             </div>
 
             <div className="grid gap-2">
-                <Label>{isEdit ? 'Password (leave blank to keep)' : 'Password *'}</Label>
+                <Label>
+                    {isEdit ? 'Password (leave blank to keep)' : 'Password *'}
+                </Label>
                 <Input
                     type="password"
                     value={form.data.password}
                     onChange={(e) => form.setData('password', e.target.value)}
-                    placeholder={isEdit ? 'Leave blank to keep current' : 'Password'}
+                    placeholder={
+                        isEdit ? 'Leave blank to keep current' : 'Password'
+                    }
                     required={!isEdit}
                 />
                 {form.errors.password && (
-                    <p className="text-xs text-red-600">{form.errors.password}</p>
+                    <p className="text-xs text-red-600">
+                        {form.errors.password}
+                    </p>
                 )}
             </div>
 
@@ -208,8 +214,12 @@ function UserFormFields({
                             >
                                 <Checkbox
                                     id={`store-${store.id}`}
-                                    checked={form.data.store_ids.includes(store.id)}
-                                    onCheckedChange={() => toggleStore(store.id)}
+                                    checked={form.data.store_ids.includes(
+                                        store.id,
+                                    )}
+                                    onCheckedChange={() =>
+                                        toggleStore(store.id)
+                                    }
                                 />
                                 <Label
                                     htmlFor={`store-${store.id}`}
@@ -225,7 +235,9 @@ function UserFormFields({
                     </div>
                 </div>
                 {form.errors.store_ids && (
-                    <p className="text-xs text-red-600">{form.errors.store_ids}</p>
+                    <p className="text-xs text-red-600">
+                        {form.errors.store_ids}
+                    </p>
                 )}
             </div>
         </div>
@@ -318,11 +330,13 @@ export default function UsersIndex({
                         <form onSubmit={handleSearch} className="mb-4">
                             <div className="flex gap-2">
                                 <div className="relative flex-1">
-                                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                     <Input
                                         placeholder="Search users..."
                                         value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
+                                        onChange={(e) =>
+                                            setSearch(e.target.value)
+                                        }
                                         className="pl-9"
                                     />
                                 </div>
@@ -335,7 +349,9 @@ export default function UsersIndex({
                         {users.data.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
                                 <Users className="mb-4 h-12 w-12 text-muted-foreground" />
-                                <h3 className="text-lg font-medium">No users found</h3>
+                                <h3 className="text-lg font-medium">
+                                    No users found
+                                </h3>
                                 <p className="text-sm text-muted-foreground">
                                     Get started by adding a new user
                                 </p>
@@ -345,11 +361,21 @@ export default function UsersIndex({
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b text-left text-sm text-muted-foreground">
-                                            <th className="p-3 font-medium">Name</th>
-                                            <th className="p-3 font-medium">Email</th>
-                                            <th className="p-3 font-medium">Role</th>
-                                            <th className="p-3 font-medium">Stores</th>
-                                            <th className="p-3 font-medium">Actions</th>
+                                            <th className="p-3 font-medium">
+                                                Name
+                                            </th>
+                                            <th className="p-3 font-medium">
+                                                Email
+                                            </th>
+                                            <th className="p-3 font-medium">
+                                                Role
+                                            </th>
+                                            <th className="p-3 font-medium">
+                                                Stores
+                                            </th>
+                                            <th className="p-3 font-medium">
+                                                Actions
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -368,21 +394,27 @@ export default function UsersIndex({
                                                     <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
                                                         {user.roles[0]?.name
                                                             ?.replace(/-/g, ' ')
-                                                            .replace(/\b\w/g, (l) =>
-                                                                l.toUpperCase(),
+                                                            .replace(
+                                                                /\b\w/g,
+                                                                (l) =>
+                                                                    l.toUpperCase(),
                                                             ) ?? 'No Role'}
                                                     </span>
                                                 </td>
                                                 <td className="p-3">
                                                     <div className="flex flex-wrap gap-1">
-                                                        {user.stores.map((store) => (
-                                                            <span
-                                                                key={store.id}
-                                                                className="rounded bg-secondary px-2 py-0.5 text-xs"
-                                                            >
-                                                                {store.code}
-                                                            </span>
-                                                        ))}
+                                                        {user.stores.map(
+                                                            (store) => (
+                                                                <span
+                                                                    key={
+                                                                        store.id
+                                                                    }
+                                                                    className="rounded bg-secondary px-2 py-0.5 text-xs"
+                                                                >
+                                                                    {store.code}
+                                                                </span>
+                                                            ),
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="p-3">
@@ -391,7 +423,9 @@ export default function UsersIndex({
                                                             variant="ghost"
                                                             size="icon"
                                                             onClick={() =>
-                                                                openEditDialog(user)
+                                                                openEditDialog(
+                                                                    user,
+                                                                )
                                                             }
                                                         >
                                                             <Pencil className="h-4 w-4" />
@@ -400,7 +434,9 @@ export default function UsersIndex({
                                                             variant="ghost"
                                                             size="icon"
                                                             onClick={() =>
-                                                                openDeleteDialog(user)
+                                                                openDeleteDialog(
+                                                                    user,
+                                                                )
                                                             }
                                                         >
                                                             <Trash2 className="h-4 w-4 text-destructive" />
@@ -417,7 +453,8 @@ export default function UsersIndex({
                         {users.last_page > 1 && (
                             <div className="mt-4 flex items-center justify-between">
                                 <p className="text-sm text-muted-foreground">
-                                    Showing {users.data.length} of {users.total} users
+                                    Showing {users.data.length} of {users.total}{' '}
+                                    users
                                 </p>
                                 <div className="flex gap-1">
                                     {users.links.map((link, index) => {
@@ -462,12 +499,18 @@ export default function UsersIndex({
                                         return (
                                             <Button
                                                 key={index}
-                                                variant={link.active ? 'default' : 'outline'}
+                                                variant={
+                                                    link.active
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
                                                 size="icon"
                                                 asChild={!!link.url}
                                             >
                                                 {link.url ? (
-                                                    <Link href={link.url}>{link.label}</Link>
+                                                    <Link href={link.url}>
+                                                        {link.label}
+                                                    </Link>
                                                 ) : (
                                                     link.label
                                                 )}
@@ -491,7 +534,11 @@ export default function UsersIndex({
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleAdd}>
-                        <UserFormFields form={addForm} stores={stores} roles={roles} />
+                        <UserFormFields
+                            form={addForm}
+                            stores={stores}
+                            roles={roles}
+                        />
                         <DialogFooter className="mt-4">
                             <Button
                                 type="button"

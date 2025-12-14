@@ -4,7 +4,7 @@
   </a>
 </p>
 
-<h1 align="center">Jen-POS</h1>
+<h1 align="center">SUNBITES-POS</h1>
 
 <p align="center">
   <strong>Canteen Prepaid and Loyalty Card System</strong><br>
@@ -29,7 +29,7 @@
   <img align="right" width="200" src="https://img.shields.io/badge/🍽️_Powered_by-Sunbites-22c55e?style=for-the-badge&labelColor=166534" />
 </a>
 
-**Jen-POS** is proudly partnered with **Sunbites** — a streamlined daily meal program designed for parents who want predictability, balanced nutrition, and zero daily hassle.
+**SUNBITES-POS** is proudly partnered with **Sunbites** — a streamlined daily meal program designed for parents who want predictability, balanced nutrition, and zero daily hassle.
 
 Sunbites provides homemade meals delivered through a subscription model, addressing widespread issues in Philippine schools including malnutrition, foodborne illness, and chaotic canteen environments.
 
@@ -79,7 +79,6 @@ Each canteen operates independently but connects to the same central platform:
 Customers can reload their wallet via:
 
 - **Cash at cashier**
-- **Digital payments** (GCash, Maya, or card)
 - **Optional:** Auto top-up when balance drops below a set amount
 
 Funds reflect immediately and are usable at that specific canteen (or others, if cross-branch use is enabled).
@@ -97,7 +96,7 @@ Each transaction is logged under the customer's account. They can view:
 
 - Wallet balance
 - Transaction history
-- Loyalty points and redemption options (if applicable)
+- Loyalty points and redemption options
 
 ---
 
@@ -232,8 +231,8 @@ Ensure you have the following installed:
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/jen-pos.git
-cd jen-pos
+git clone https://github.com/jhersonn/sunbites-pos.git
+cd sunbites-pos
 ```
 
 #### 2. Install PHP Dependencies
@@ -310,8 +309,8 @@ The application will be available at: **http://localhost:8000**
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/jen-pos.git
-cd jen-pos
+git clone https://github.com/jhersonn/sunbites-pos.git
+cd sunbites-pos
 ```
 
 #### 2. Install Dependencies (without Docker)
@@ -453,6 +452,12 @@ COMPOSER_MEMORY_LIMIT=-1 composer install
 - Ensure MySQL/MariaDB service is running
 - Verify credentials in `.env`
 - Check if database exists
+
+---
+
+## Credits
+
+**SUNBITES-POS** was developed by **Jhersonn Cayao** ([@jhersonn](https://github.com/jhersonn)) in partnership with **Sunbites**.
 
 ---
 
