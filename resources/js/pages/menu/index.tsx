@@ -9,6 +9,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { useQuerySync } from '@/hooks/use-query-sync';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import type { MenuPageProps, MenuProductCardProps } from '@/types/menu.d';
@@ -22,35 +23,11 @@ import {
     Search,
     ShoppingBag,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Menu', href: '/menu' }];
 
-function useQuerySync(initial: { search?: string; category?: string }) {
-    const [search, setSearch] = useState(initial.search ?? '');
-    const [category, setCategory] = useState(initial.category ?? '');
-
-    useEffect(() => {
-        const t = setTimeout(() => {
-            const params: Record<string, string> = {};
-            if (search) params.search = search;
-            if (category) params.category = category;
-            const queryString = new URLSearchParams(params).toString();
-            const baseUrl = window.location.pathname;
-            const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
-            router.get(
-                url,
-                {},
-                { preserveState: true, preserveScroll: true, replace: true },
-            );
-        }, 300);
-        return () => clearTimeout(t);
-    }, [search, category]);
-
-    return { search, setSearch, category, setCategory };
-}
-
-function ProductCard({
+const ProductCard = memo(function ProductCard({
     product,
 }: {
     product: MenuProductCardProps['product'];
@@ -58,7 +35,7 @@ function ProductCard({
     const [loading, setLoading] = useState(false);
     const isOutOfStock = product.track_inventory && product.stock <= 0;
 
-    function handleAddToCart() {
+    const handleAddToCart = useCallback(() => {
         if (isOutOfStock) return;
         setLoading(true);
         router.post(
@@ -70,7 +47,7 @@ function ProductCard({
                 preserveScroll: true,
             },
         );
-    }
+    }, [product.id, isOutOfStock]);
 
     return (
         <div
@@ -147,9 +124,11 @@ function ProductCard({
             </div>
         </div>
     );
-}
+});
 
-function BarcodeScanner({
+ProductCard.displayName = 'ProductCard';
+
+const BarcodeScanner = memo(function BarcodeScanner({
     open,
     onClose,
 }: {
@@ -262,7 +241,9 @@ function BarcodeScanner({
             </DialogContent>
         </Dialog>
     );
-}
+});
+
+BarcodeScanner.displayName = 'BarcodeScanner';
 
 export default function MenuIndex() {
     const { props } = usePage<MenuPageProps>();

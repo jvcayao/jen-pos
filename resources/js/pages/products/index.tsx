@@ -1060,7 +1060,7 @@ export default function ProductsIndex() {
                     </div>
                 </div>
 
-                {products.length === 0 ? (
+                {products.data.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                         <Package className="mb-4 h-12 w-12 text-muted-foreground" />
                         <p className="text-sm text-muted-foreground">
@@ -1069,7 +1069,7 @@ export default function ProductsIndex() {
                     </div>
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {products.map((p) => (
+                        {products.data.map((p) => (
                             <ProductCard
                                 key={p.id}
                                 product={p}

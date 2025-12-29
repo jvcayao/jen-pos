@@ -26,7 +26,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useQuerySync } from '@/hooks/use-query-sync';
 import AppLayout from '@/layouts/app-layout';
+import { formatCurrency } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
@@ -47,7 +49,7 @@ import {
     Wallet,
     X,
 } from 'lucide-react';
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, memo, useCallback, useEffect, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Students', href: '/students' },
@@ -113,13 +115,6 @@ interface StudentFormData {
     is_active: boolean;
     wallet_type: string;
 }
-
-const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-PH', {
-        style: 'currency',
-        currency: 'PHP',
-    }).format(value);
-};
 
 function getDefaultFormData(): StudentFormData {
     return {
@@ -865,7 +860,7 @@ function StudentQrModal({
     );
 }
 
-function StudentCard({
+const StudentCard = memo(function StudentCard({
     student,
     isSelected,
     onSelect,
@@ -1056,51 +1051,35 @@ function StudentCard({
             />
         </>
     );
-}
+});
+
+StudentCard.displayName = 'StudentCard';
 
 export default function StudentsIndex({ students, filters }: StudentPageProps) {
-    const [search, setSearch] = useState(filters?.search ?? '');
-    const [status, setStatus] = useState(filters?.status ?? '');
+    const { search, setSearch, status, setStatus } = useQuerySync(filters ?? {});
     const [openCreate, setOpenCreate] = useState(false);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [selectionMode, setSelectionMode] = useState(false);
 
-    useEffect(() => {
-        const t = setTimeout(() => {
-            const params: Record<string, string> = {};
-            if (search) params.search = search;
-            if (status) params.status = status;
-            const queryString = new URLSearchParams(params).toString();
-            const baseUrl = window.location.pathname;
-            const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
-            router.get(
-                url,
-                {},
-                { preserveState: true, preserveScroll: true, replace: true },
-            );
-        }, 300);
-        return () => clearTimeout(t);
-    }, [search, status]);
-
-    const handlePageChange = (url: string | null) => {
+    const handlePageChange = useCallback((url: string | null) => {
         if (url) {
             router.visit(url, { preserveState: true, preserveScroll: true });
         }
-    };
+    }, []);
 
-    const handleSelect = (id: number, selected: boolean) => {
+    const handleSelect = useCallback((id: number, selected: boolean) => {
         setSelectedIds((prev) =>
             selected ? [...prev, id] : prev.filter((i) => i !== id),
         );
-    };
+    }, []);
 
-    const handleSelectAll = () => {
-        if (selectedIds.length === students.data.length) {
-            setSelectedIds([]);
-        } else {
-            setSelectedIds(students.data.map((s) => s.id));
-        }
-    };
+    const handleSelectAll = useCallback(() => {
+        setSelectedIds((prev) =>
+            prev.length === students.data.length
+                ? []
+                : students.data.map((s) => s.id),
+        );
+    }, [students.data]);
 
     const handleExportSelected = () => {
         if (selectedIds.length === 0) return;

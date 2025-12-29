@@ -1,0 +1,221 @@
+name: Deploy to AWS EC2
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+      run_migrations:
+        description: 'Run database migrations'
+        required: true
+        default: true
+        type: boolean
+      run_seeders:
+        description: 'Run database seeders (fresh install only)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PHP_VERSION: '8.3'
+  NODE_VERSION: '20'
+
+jobs:
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, json, zip, bcmath
+          coverage: none
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+      - name: Decrypt environment file
+        run: php artisan env:decrypt --env=production --key=${{ secrets.LARAVEL_ENV_ENCRYPTION_KEY }} --force
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install NPM dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Create deployment artifact
+        run: |
+          tar -czf deployment.tar.gz \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='tests' \
+            --exclude='.env' \
+            --exclude='.env.example' \
+            --exclude='.env.production.encrypted' \
+            --exclude='deploy' \
+            --exclude='*.md' \
+            --exclude='phpunit.xml' \
+            --exclude='.editorconfig' \
+            --exclude='.gitattributes' \
+            --exclude='.gitignore' \
+            --exclude='docker-compose*.yml' \
+            .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-artifact
+          path: deployment.tar.gz
+          retention-days: 1
+
+  deploy:
+    name: Deploy to EC2
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-artifact
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        run: |
+          # Copy artifact to server
+          scp -i ~/.ssh/deploy_key deployment.tar.gz ubuntu@${{ secrets.EC2_HOST }}:/tmp/
+
+          # Execute deployment on server
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.EC2_HOST }} << 'DEPLOY_SCRIPT'
+            set -e
+
+            echo "=== Starting deployment ==="
+
+            # Variables
+            APP_DIR="/var/www/sunbites-pos"
+            BACKUP_DIR="/var/www/backups"
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+            # Create backup directory
+            mkdir -p $BACKUP_DIR
+
+            # Backup current release (keep last 3)
+            if [ -d "$APP_DIR" ] && [ "$(ls -A $APP_DIR 2>/dev/null)" ]; then
+              echo "Creating backup..."
+              tar -czf $BACKUP_DIR/backup_$TIMESTAMP.tar.gz -C $APP_DIR . 2>/dev/null || true
+              # Keep only last 3 backups
+              cd $BACKUP_DIR && ls -t backup_*.tar.gz | tail -n +4 | xargs -r rm --
+            fi
+
+            # Extract new release
+            echo "Extracting new release..."
+            mkdir -p $APP_DIR
+            cd $APP_DIR
+            tar -xzf /tmp/deployment.tar.gz
+            rm /tmp/deployment.tar.gz
+
+            # Setup environment file (decrypted .env.production -> .env)
+            echo "Setting up environment file..."
+            if [ -f ".env.production" ]; then
+              mv .env.production .env
+              echo "Environment file configured from decrypted .env.production"
+            fi
+
+            # Set permissions
+            echo "Setting permissions..."
+            sudo chown -R ubuntu:www-data $APP_DIR
+            sudo chmod -R 755 $APP_DIR
+            sudo chmod -R 775 $APP_DIR/storage
+            sudo chmod -R 775 $APP_DIR/bootstrap/cache
+            chmod 600 $APP_DIR/.env
+
+            # Install/update dependencies (in case of new packages)
+            echo "Installing dependencies..."
+            cd $APP_DIR
+            composer install --no-dev --optimize-autoloader --no-interaction
+
+            # Run Laravel setup
+            echo "Running Laravel setup..."
+            php artisan storage:link 2>/dev/null || true
+
+            # Run Laravel optimizations
+            echo "Running Laravel optimizations..."
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan event:cache
+
+            # Restart services
+            echo "Restarting services..."
+            sudo systemctl reload php8.3-fpm
+            sudo supervisorctl restart sunbites-worker:*
+
+            echo "=== Deployment complete ==="
+          DEPLOY_SCRIPT
+
+      - name: Run migrations
+        if: ${{ github.event.inputs.run_migrations == 'true' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.EC2_HOST }} << 'MIGRATE_SCRIPT'
+            cd /var/www/sunbites-pos
+            php artisan migrate --force
+            echo "Migrations completed"
+          MIGRATE_SCRIPT
+
+      - name: Run seeders
+        if: ${{ github.event.inputs.run_seeders == 'true' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.EC2_HOST }} << 'SEED_SCRIPT'
+            cd /var/www/sunbites-pos
+            php artisan db:seed --force
+            echo "Seeders completed"
+          SEED_SCRIPT
+
+      - name: Health check
+        run: |
+          echo "Performing health check..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.EC2_HOST }}/ || echo "000")
+          if [ "$HTTP_STATUS" -eq "200" ] || [ "$HTTP_STATUS" -eq "302" ]; then
+            echo "Health check passed! Status: $HTTP_STATUS"
+          else
+            echo "Warning: Health check returned status $HTTP_STATUS"
+            exit 1
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

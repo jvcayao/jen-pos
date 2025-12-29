@@ -28,8 +28,16 @@ export interface Product {
     category_name?: string | null;
 }
 
+export interface PaginatedProducts {
+    data: Product[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
 export interface ProductPageProps {
-    products: Product[];
+    products: PaginatedProducts;
     categories: CategoryOption[];
     filters: ProductFilters;
     [key: string]: unknown;

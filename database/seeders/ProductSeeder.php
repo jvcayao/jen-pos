@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Scopes\StoreScope;
 use Illuminate\Support\Str;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Aliziodev\LaravelTaxonomy\Models\Taxonomy;
 
 class ProductSeeder extends Seeder
@@ -434,50 +435,95 @@ class ProductSeeder extends Seeder
 
         ];
 
-        // Get all stores and create products for each
+        // Get all stores
         $stores = Store::all();
 
         foreach ($stores as $store) {
-            // Set current store context for the BelongsToStore trait
-            app()->instance('current.store', $store);
+            $this->seedProductsForStore($store, $products);
+        }
+    }
 
-            foreach ($products as [$category, $subcategory, $name]) {
-                // Find store-specific taxonomy using the store id suffix (matches MenuSeeder)
-                $subSlug = Str::slug($subcategory).'-'.$store->id;
-                $sub = Taxonomy::where('slug', $subSlug)
-                    ->where('store_id', $store->id)
-                    ->first();
+    /**
+     * Seed products for a specific store using bulk operations.
+     *
+     * @param  array<int, array{0: string, 1: string, 2: string}>  $products
+     */
+    private function seedProductsForStore(Store $store, array $products): void
+    {
+        // Load all taxonomies for this store upfront (keyed by slug)
+        $taxonomies = Taxonomy::where('store_id', $store->id)
+            ->pluck('id', 'slug')
+            ->toArray();
 
-                if (!$sub) {
-                    continue;
-                }
+        // Load existing product slugs for this store
+        $existingSlugs = Product::withoutGlobalScope(StoreScope::class)
+            ->where('store_id', $store->id)
+            ->pluck('slug')
+            ->flip()
+            ->toArray();
 
-                // Create unique slug per store
-                $productSlug = Str::slug($name).'-'.$store->id;
+        $productsToInsert = [];
+        $taxonomyAttachments = [];
+        $now = now();
 
-                // Check if product already exists for this store
-                $existingProduct = Product::withoutGlobalScope(StoreScope::class)
-                    ->where('slug', $productSlug)
-                    ->where('store_id', $store->id)
-                    ->first();
+        foreach ($products as [$category, $subcategory, $name]) {
+            $subSlug = Str::slug($subcategory).'-'.$store->id;
+            $productSlug = Str::slug($name).'-'.$store->id;
 
-                if ($existingProduct) {
-                    continue;
-                }
+            // Skip if taxonomy doesn't exist or product already exists
+            if (!isset($taxonomies[$subSlug]) || isset($existingSlugs[$productSlug])) {
+                continue;
+            }
 
-                $product = Product::withoutGlobalScope(StoreScope::class)->create([
-                    'store_id' => $store->id,
-                    'name' => $name,
-                    'price' => rand(50, 200),
-                    'slug' => $productSlug,
-                    'description' => $name,
-                ]);
+            $productsToInsert[] = [
+                'store_id' => $store->id,
+                'name' => $name,
+                'price' => rand(50, 200),
+                'slug' => $productSlug,
+                'description' => $name,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
 
-                $product->attachTaxonomies([$sub->id]);
+            // Store taxonomy ID for later attachment
+            $taxonomyAttachments[$productSlug] = $taxonomies[$subSlug];
+        }
+
+        if (empty($productsToInsert)) {
+            return;
+        }
+
+        // Bulk insert products in chunks to avoid memory issues
+        foreach (array_chunk($productsToInsert, 100) as $chunk) {
+            DB::table('products')->insert($chunk);
+        }
+
+        // Fetch the newly created products to get their IDs
+        $newProducts = Product::withoutGlobalScope(StoreScope::class)
+            ->where('store_id', $store->id)
+            ->whereIn('slug', array_keys($taxonomyAttachments))
+            ->pluck('id', 'slug')
+            ->toArray();
+
+        // Build taxonomy attachment records
+        $taxonomableRecords = [];
+        foreach ($newProducts as $slug => $productId) {
+            if (isset($taxonomyAttachments[$slug])) {
+                $taxonomableRecords[] = [
+                    'taxonomy_id' => $taxonomyAttachments[$slug],
+                    'taxonomable_type' => Product::class,
+                    'taxonomable_id' => $productId,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
             }
         }
 
-        // Clear store context after seeding
-        app()->forgetInstance('current.store');
+        // Bulk insert taxonomy attachments
+        if (!empty($taxonomableRecords)) {
+            foreach (array_chunk($taxonomableRecords, 100) as $chunk) {
+                DB::table('taxonomables')->insert($chunk);
+            }
+        }
     }
 }

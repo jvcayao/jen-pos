@@ -28,7 +28,8 @@ class ProductController extends Controller
             ->when($request->filled('search'), fn ($query) => $query->where('name', 'like', '%'.$request->string('search').'%'))
             ->when($request->filled('category'), fn ($query) => $query->withTaxonomySlug($request->query('category')))
             ->latest()
-            ->get();
+            ->paginate(50)
+            ->through(fn ($product) => (new ProductResource($product))->resolve());
 
         $categories = Taxonomy::tree(TaxonomyType::Category)
             ->flatMap(fn ($parent) => $parent->children->map(fn ($child) => [
@@ -38,7 +39,7 @@ class ProductController extends Controller
             ]));
 
         return Inertia::render('products/index', [
-            'products' => ProductResource::collection($products)->resolve(),
+            'products' => $products,
             'categories' => $categories,
             'filters' => $request->only(['search', 'category']),
         ]);

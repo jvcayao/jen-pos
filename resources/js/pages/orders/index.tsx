@@ -16,6 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
+import { formatCurrency } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import {
@@ -26,7 +27,7 @@ import {
     Receipt,
     Search,
 } from 'lucide-react';
-import { useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Order History', href: '/orders' },
@@ -74,14 +75,7 @@ interface OrdersPageProps {
     };
 }
 
-const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-PH', {
-        style: 'currency',
-        currency: 'PHP',
-    }).format(value);
-};
-
-function OrderCard({ order }: { order: Order }) {
+const OrderCard = memo(function OrderCard({ order }: { order: Order }) {
     const [expanded, setExpanded] = useState(false);
 
     return (
@@ -199,7 +193,9 @@ function OrderCard({ order }: { order: Order }) {
             </CardContent>
         </Card>
     );
-}
+});
+
+OrderCard.displayName = 'OrderCard';
 
 export default function OrdersIndex({ orders, filters }: OrdersPageProps) {
     const [search, setSearch] = useState(filters.search || '');
@@ -333,10 +329,9 @@ export default function OrdersIndex({ orders, filters }: OrdersPageProps) {
                                             onClick={() =>
                                                 handlePageChange(link.url)
                                             }
-                                            dangerouslySetInnerHTML={{
-                                                __html: link.label,
-                                            }}
-                                        />
+                                        >
+                                            {link.label.replace(/&laquo;|&raquo;/g, '')}
+                                        </Button>
                                     ))}
                                     <Button
                                         variant="outline"

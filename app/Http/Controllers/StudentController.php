@@ -16,6 +16,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use BaconQrCode\Renderer\ImageRenderer;
+use App\Http\Requests\StoreStudentRequest;
+use App\Http\Requests\StudentWalletRequest;
+use App\Http\Requests\UpdateStudentRequest;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use App\Http\Controllers\Traits\FlashesSessionData;
 use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
@@ -32,6 +35,7 @@ class StudentController extends Controller
     public function index(Request $request): Response
     {
         $students = Student::query()
+            ->with('wallets') // Eager load wallets to prevent N+1
             ->search($request->search)
             ->when($request->status === 'active', fn ($q) => $q->active())
             ->when($request->status === 'inactive', fn ($q) => $q->where('is_active', false))
@@ -64,21 +68,9 @@ class StudentController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreStudentRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'student_id' => 'required|string|unique:students,student_id',
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:20',
-            'grade_level' => 'nullable|string|max:50',
-            'section' => 'nullable|string|max:50',
-            'guardian_name' => 'nullable|string|max:255',
-            'guardian_phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string',
-            'wallet_type' => 'nullable|in:subscribe,non-subscribe',
-        ]);
+        $validated = $request->validated();
 
         $student = Student::create($validated);
 
@@ -96,22 +88,9 @@ class StudentController extends Controller
         ]);
     }
 
-    public function update(Request $request, Student $student): RedirectResponse
+    public function update(UpdateStudentRequest $request, Student $student): RedirectResponse
     {
-        $validated = $request->validate([
-            'student_id' => 'required|string|unique:students,student_id,'.$student->id,
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:20',
-            'grade_level' => 'nullable|string|max:50',
-            'section' => 'nullable|string|max:50',
-            'guardian_name' => 'nullable|string|max:255',
-            'guardian_phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string',
-            'is_active' => 'boolean',
-            'wallet_type' => 'nullable|in:subscribe,non-subscribe',
-        ]);
+        $validated = $request->validated();
 
         $student->update($validated);
 
@@ -144,12 +123,9 @@ class StudentController extends Controller
         ]);
     }
 
-    public function deposit(Request $request, Student $student): RedirectResponse
+    public function deposit(StudentWalletRequest $request, Student $student): RedirectResponse
     {
-        $validated = $request->validate([
-            'amount' => 'required|numeric|min:1',
-            'description' => 'nullable|string|max:255',
-        ]);
+        $validated = $request->validated();
 
         if (!$student->wallet_type) {
             return back()->with('flash', [
@@ -197,12 +173,9 @@ class StudentController extends Controller
         }
     }
 
-    public function withdraw(Request $request, Student $student): RedirectResponse
+    public function withdraw(StudentWalletRequest $request, Student $student): RedirectResponse
     {
-        $validated = $request->validate([
-            'amount' => 'required|numeric|min:1',
-            'description' => 'nullable|string|max:255',
-        ]);
+        $validated = $request->validated();
 
         if (!$student->wallet_type) {
             return back()->with('flash', [
@@ -318,6 +291,7 @@ class StudentController extends Controller
             $this->cacheService->getStudentSearchKey($storeId, $query),
             CacheService::TTL_SHORT,
             fn () => Student::query()
+                ->with('wallets') // Eager load wallets to prevent N+1
                 ->active()
                 ->search($query)
                 ->limit(10)

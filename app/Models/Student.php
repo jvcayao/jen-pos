@@ -42,12 +42,13 @@ class Student extends Model implements Wallet, WalletFloat
         'is_active' => 'boolean',
     ];
 
+    /**
+     * Accessors appended by default.
+     * Note: Wallet-related accessors removed to prevent N+1 queries.
+     * Use explicit calls or eager loading for wallet data.
+     */
     protected $appends = [
         'full_name',
-        'wallet_balance',
-        'subscribe_wallet_balance',
-        'non_subscribe_wallet_balance',
-        'qr_code_url',
     ];
 
     protected static function booted(): void
